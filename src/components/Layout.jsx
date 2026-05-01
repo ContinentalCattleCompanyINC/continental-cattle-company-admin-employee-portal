@@ -30,13 +30,17 @@ export default function Layout() {
       <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 flex-shrink-0 bg-card border-r border-border flex flex-col`}>
         {/* Logo */}
         <div className="p-4 border-b border-border flex items-center gap-3">
-          <div className="w-8 h-8 gold-gradient rounded flex items-center justify-center flex-shrink-0">
-            <span className="text-black font-bebas text-sm">CC</span>
+          <div className="w-10 h-10 flex-shrink-0 rounded overflow-hidden bg-[#D2782A]">
+            <img
+              src="https://media.base44.com/images/public/69f4e0f8f8f460e805a3eb84/d924dd25e_IMG_6891.png"
+              alt="CCC Logo"
+              className="w-full h-full object-cover"
+            />
           </div>
           {sidebarOpen && (
             <div className="overflow-hidden">
-              <div className="font-bebas text-primary text-lg leading-none">Continental</div>
-              <div className="text-muted-foreground text-xs">Cattle Co INC</div>
+              <div className="font-bebas text-primary text-lg leading-none">Continental Cattle Co</div>
+              <div className="text-muted-foreground text-xs">Lane Beeson · Jeff Lewey</div>
             </div>
           )}
           <button
