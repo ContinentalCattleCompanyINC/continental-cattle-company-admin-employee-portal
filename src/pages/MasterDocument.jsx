@@ -426,6 +426,60 @@ const SECTIONS = [
     ]
   },
   {
+    category: 'FINANCIAL, CAPITAL & INSTITUTIONAL ENGINES (701–750)', sections: [
+      { num: 701, title: 'Financial Performance Engine', content: 'Tracks: cash flow, capital flow, credit usage, margin structure, ROI cycles.\nOutputs: Financial performance score, forecast, strategy.' },
+      { num: 702, title: 'Financial Fusion Engine', content: 'Fuses financial data with: market conditions, feed costs, weather impacts, logistics costs, packer leverage.\nOutputs: Financial fusion score, map, strategy.' },
+      { num: 703, title: 'Financial Simulation Engine', content: 'Simulates: margin collapse, margin expansion, cash flow stress, capital shortages.\nOutputs: Financial simulation outcomes, risk, optimization.' },
+      { num: 704, title: 'Financial Control Tower', content: 'Unified financial command over: cash, capital, credit, hedging, marketing.\nOutputs: Financial command plan, optimization.' },
+      { num: 705, title: 'Capital Engine', content: 'Tracks: capital allocation, efficiency, ROI, turnover.\nOutputs: Capital score, forecast, optimization plan.' },
+      { num: 706, title: 'Capital Fusion Engine', content: 'Fuses capital with: market, feed, weather cycles.\nOutputs: Capital fusion score, map, strategy.' },
+      { num: 707, title: 'Capital Simulation Engine', content: 'Simulates: capital shortages, surges, bottlenecks.\nOutputs: Capital simulation outcomes, risk, optimization.' },
+      { num: 708, title: 'Capital Control Tower', content: 'Unified capital command over: expansion, contraction, hedging, inventory.\nOutputs: Capital command plan, optimization.' },
+      { num: 709, title: 'Credit Engine', content: 'Tracks: credit usage, availability, cost, leverage.\nOutputs: Credit score, forecast, optimization plan.' },
+      { num: 710, title: 'Credit Fusion Engine', content: 'Fuses credit with: market, feed, weather volatility.\nOutputs: Credit fusion score, map, strategy.' },
+      { num: 711, title: 'Credit Simulation Engine', content: 'Simulates: credit tightening, expansion, interest rate shocks.\nOutputs: Credit simulation outcomes, risk, optimization.' },
+      { num: 712, title: 'Credit Control Tower', content: 'Unified credit command over: borrowing, repayment, hedging, capital allocation.\nOutputs: Credit command plan, optimization.' },
+      { num: 713, title: 'Cash Engine', content: 'Tracks: cash flow, burn, reserves, cycles.\nOutputs: Cash score, forecast, optimization plan.' },
+      { num: 714, title: 'Cash Fusion Engine', content: 'Fuses cash with: market, feed, weather cycles.\nOutputs: Cash fusion score, map, strategy.' },
+      { num: 715, title: 'Cash Simulation Engine', content: 'Simulates: cash shortages, surges, bottlenecks.\nOutputs: Cash simulation outcomes, risk, optimization.' },
+      { num: 716, title: 'Cash Control Tower', content: 'Unified cash command over: buying, feeding, selling, hedging.\nOutputs: Cash command plan, optimization.' },
+      { num: 717, title: 'Margin Engine', content: 'Tracks: feeding, selling, hedging, processing margins.\nOutputs: Margin score, forecast, optimization plan.' },
+      { num: 718, title: 'Margin Fusion Engine', content: 'Fuses margins with: market, feed, weather, logistics.\nOutputs: Margin fusion score, map, strategy.' },
+      { num: 719, title: 'Margin Simulation Engine', content: 'Simulates: margin collapse, expansion, volatility.\nOutputs: Margin simulation outcomes, risk, optimization.' },
+      { num: 720, title: 'Margin Control Tower', content: 'Unified margin command over: buying, feeding, selling, hedging.\nOutputs: Margin command plan, optimization.' },
+      { num: 721, title: 'Cost Engine', content: 'Tracks: feed, labor, fuel, processing, logistics costs.\nOutputs: Cost score, forecast, optimization plan.' },
+      { num: 722, title: 'Cost Fusion Engine', content: 'Fuses costs with: weather, market, logistics.\nOutputs: Cost fusion score, map, strategy.' },
+      { num: 723, title: 'Cost Simulation Engine', content: 'Simulates: feed spikes, fuel spikes, labor shortages.\nOutputs: Cost simulation outcomes, risk, optimization.' },
+      { num: 724, title: 'Cost Control Tower', content: 'Unified cost command over: feed, labor, fuel, logistics.\nOutputs: Cost command plan, optimization.' },
+      { num: 725, title: 'Profit Engine', content: 'Tracks: gross, net, operating, risk-adjusted profit.\nOutputs: Profit score, forecast, optimization plan.' },
+      { num: 726, title: 'Profit Fusion Engine', content: 'Fuses profit with: market, feed, weather, logistics.\nOutputs: Profit fusion score, map, strategy.' },
+      { num: 727, title: 'Profit Simulation Engine', content: 'Simulates: profit collapse, expansion, volatility.\nOutputs: Profit simulation outcomes, risk, optimization.' },
+      { num: 728, title: 'Profit Control Tower', content: 'Unified profit command over: buying, feeding, selling, hedging.\nOutputs: Profit command plan, optimization.' },
+      { num: 729, title: 'Risk-Adjusted Return Engine', content: 'Tracks: Sharpe ratio, risk-adjusted ROI, volatility-adjusted profit.\nOutputs: Risk-adjusted score, forecast, strategy.' },
+      { num: 730, title: 'Risk-Adjusted Fusion Engine', content: 'Fuses risk-adjusted returns with: market, feed, weather volatility.\nOutputs: Risk-adjusted fusion score, map, strategy.' },
+      { num: 731, title: 'Risk-Adjusted Simulation Engine', content: 'Simulates: high-volatility markets, feed, weather scenarios.\nOutputs: Risk-adjusted simulation outcomes, risk, optimization.' },
+      { num: 732, title: 'Risk-Adjusted Control Tower', content: 'Unified risk-adjusted command over: hedging, buying, selling.\nOutputs: Risk-adjusted command plan, optimization.' },
+      { num: 733, title: 'Institutional-Grade Finance Engine', content: 'Tracks metrics for: banks, investors, funds, institutional lenders.\nOutputs: Institutional score, forecast, readiness plan.' },
+      { num: 734, title: 'Institutional-Grade Fusion Engine', content: 'Fuses institutional requirements with: cash, capital, credit, risk.\nOutputs: Institutional fusion score, map, strategy.' },
+      { num: 735, title: 'Institutional-Grade Simulation Engine', content: 'Simulates: credit tightening, capital calls, margin compression.\nOutputs: Institutional simulation outcomes, risk, optimization.' },
+      { num: 736, title: 'Institutional-Grade Control Tower', content: 'Unified institutional command over: reporting, compliance, capital structure.\nOutputs: Institutional command plan, optimization.' },
+      { num: 737, title: 'Investment Engine', content: 'Tracks opportunities: expansion, acquisition, infrastructure, technology.\nOutputs: Investment score, forecast, strategy.' },
+      { num: 738, title: 'Investment Fusion Engine', content: 'Fuses investment with: market, feed, weather cycles.\nOutputs: Investment fusion score, map, strategy.' },
+      { num: 739, title: 'Investment Simulation Engine', content: 'Simulates: expansion, contraction, acquisition risk.\nOutputs: Investment simulation outcomes, risk, optimization.' },
+      { num: 740, title: 'Investment Control Tower', content: 'Unified investment command over: capital, cash, credit, risk.\nOutputs: Investment command plan, optimization.' },
+      { num: 741, title: 'Enterprise Valuation Engine', content: 'Tracks: asset value, equity value, enterprise value.\nOutputs: Valuation score, forecast, optimization plan.' },
+      { num: 742, title: 'Valuation Fusion Engine', content: 'Fuses valuation with: market, feed, weather, logistics.\nOutputs: Valuation fusion score, map, strategy.' },
+      { num: 743, title: 'Valuation Simulation Engine', content: 'Simulates: valuation collapse, expansion, volatility.\nOutputs: Valuation simulation outcomes, risk, optimization.' },
+      { num: 744, title: 'Valuation Control Tower', content: 'Unified valuation command over: capital, cash, risk, growth.\nOutputs: Valuation command plan, optimization.' },
+      { num: 745, title: 'Financial Superstructure Engine', content: 'Builds the overarching financial architecture governing all financial engines.\nOutputs: Financial superstructure score, map, strategy.' },
+      { num: 746, title: 'Financial Superstructure Fusion Engine', content: 'Fuses all financial superstructure components.\nOutputs: Superstructure fusion score, map, strategy.' },
+      { num: 747, title: 'Financial Superstructure Simulation Engine', content: 'Simulates: system-wide financial shocks and opportunities.\nOutputs: Superstructure simulation outcomes, risk, optimization.' },
+      { num: 748, title: 'Financial Superstructure Control Tower', content: 'Unified superstructure command over: cash, capital, credit, risk, growth.\nOutputs: Superstructure command plan, optimization.' },
+      { num: 749, title: 'Financial Integration Engine', content: 'Integrates: cash, capital, credit, profit, risk into one unified model.\nOutputs: Financial integration score, map, strategy.' },
+      { num: 750, title: 'Financial Master Completion', content: '701–750 financial tier complete. Full cash, capital, credit, margin, cost, profit, risk-adjusted, institutional, investment, valuation, and superstructure integration. Full fusion + simulation + control tower architecture.' },
+    ]
+  },
+  {
     category: 'ENTITY STRUCTURE', sections: [
       { num: 76, title: 'Multi-Entity Profit Consolidation Model', content: 'Continental Cattle Co INC: marketing\nRincon Cattle Co LLC: sales rep\nFlying 3 Bar B Livestock LLC: sales rep\nGrand Slam Cattle Co LLC: dispatch\nFull Count Trucking LLC: hauling\nBeeson Bucking Bulls: trucking/overflow\nOutputs: profit per entity, per load, per week, per month, per year, consolidated enterprise profit' },
       { num: 73, title: 'Internal Transfer Pricing Optimizer', content: 'Stages: 95→400 lb, 400→900 lb, 900→1500 lb\nMargins captured at each stage: commission, freight, dispatch, marketing, ownership\nKey principle: capturing every transfer creates enterprise profit even when individual stages show losses' },
@@ -472,7 +526,7 @@ export default function MasterDocument() {
       <div className="flex gap-4 text-xs text-muted-foreground">
         <span>Sections indexed: <span className="text-primary">{SECTIONS.reduce((s, c) => s + c.sections.length, 0)}</span></span>
         <span>Categories: <span className="text-primary">{SECTIONS.length}</span></span>
-        <span>Total system sections: <span className="text-primary">700+</span></span>
+        <span>Total system sections: <span className="text-primary">750+</span></span>
       </div>
 
       {/* Document */}
