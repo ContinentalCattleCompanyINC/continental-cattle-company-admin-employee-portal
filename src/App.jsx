@@ -19,6 +19,7 @@ import Sensitivity from './pages/Sensitivity';
 import Trucking from './pages/Trucking';
 import GlobalIntel from './pages/GlobalIntel';
 import MasterDocument from './pages/MasterDocument';
+import Approvals from './pages/Approvals';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -53,6 +54,7 @@ const AuthenticatedApp = () => {
         <Route path="/trucking" element={<Trucking />} />
         <Route path="/global" element={<GlobalIntel />} />
         <Route path="/document" element={<MasterDocument />} />
+        <Route path="/approvals" element={<Approvals />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

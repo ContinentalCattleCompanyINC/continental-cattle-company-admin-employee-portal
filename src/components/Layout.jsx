@@ -18,6 +18,7 @@ const navItems = [
   { label: 'Trucking', icon: Truck, path: '/trucking' },
   { label: 'Global Intel', icon: Globe, path: '/global' },
   { label: 'Master Document', icon: BookOpen, path: '/document' },
+  { label: 'Approvals', icon: ShieldAlert, path: '/approvals' },
 ];
 
 export default function Layout() {

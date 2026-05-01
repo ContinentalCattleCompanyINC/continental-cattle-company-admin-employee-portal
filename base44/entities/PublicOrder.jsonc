@@ -1,0 +1,77 @@
+{
+  "name": "PublicOrder",
+  "type": "object",
+  "properties": {
+    "order_type": {
+      "type": "string",
+      "enum": [
+        "buy",
+        "sell",
+        "haul"
+      ],
+      "default": "buy"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "customer_email": {
+      "type": "string"
+    },
+    "customer_phone": {
+      "type": "string"
+    },
+    "business_name": {
+      "type": "string"
+    },
+    "cattle_class": {
+      "type": "string"
+    },
+    "head_count": {
+      "type": "number"
+    },
+    "weight_range": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "destination": {
+      "type": "string"
+    },
+    "requested_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "price_expectation": {
+      "type": "string"
+    },
+    "details": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "denied",
+        "completed"
+      ],
+      "default": "pending"
+    },
+    "reviewed_by": {
+      "type": "string"
+    },
+    "reviewed_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "internal_notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "order_type",
+    "customer_name",
+    "customer_email"
+  ]
+}

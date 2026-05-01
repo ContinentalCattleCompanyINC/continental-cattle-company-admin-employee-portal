@@ -1,0 +1,55 @@
+{
+  "name": "CustomerAccount",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "business_name": {
+      "type": "string"
+    },
+    "account_type": {
+      "type": "string",
+      "enum": [
+        "buyer",
+        "seller",
+        "hauler",
+        "buyer_seller",
+        "all"
+      ],
+      "default": "buyer"
+    },
+    "state": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "denied"
+      ],
+      "default": "pending"
+    },
+    "reviewed_by": {
+      "type": "string"
+    },
+    "reviewed_date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "full_name",
+    "email"
+  ]
+}
