@@ -1,0 +1,60 @@
+{
+  "name": "WeeklyPlaybook",
+  "type": "object",
+  "properties": {
+    "week_of": {
+      "type": "string",
+      "format": "date"
+    },
+    "buy_signals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sell_signals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "feed_signals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "avoid_signals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "hedge_signals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "watch_signals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "market_summary": {
+      "type": "string"
+    },
+    "risk_score": {
+      "type": "number",
+      "description": "0-100"
+    },
+    "opportunity_score": {
+      "type": "number",
+      "description": "0-100"
+    }
+  },
+  "required": [
+    "week_of"
+  ]
+}

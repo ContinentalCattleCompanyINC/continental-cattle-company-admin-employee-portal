@@ -1,0 +1,102 @@
+{
+  "name": "CattleLot",
+  "type": "object",
+  "properties": {
+    "lot_id": {
+      "type": "string"
+    },
+    "entity": {
+      "type": "string",
+      "enum": [
+        "Continental",
+        "Rincon",
+        "Flying3BarB",
+        "GrandSlam",
+        "FullCount",
+        "BeesonBulls"
+      ],
+      "default": "Continental"
+    },
+    "cattle_class": {
+      "type": "string",
+      "enum": [
+        "holstein_steer",
+        "holstein_heifer",
+        "beef_dairy_steer",
+        "beef_dairy_heifer",
+        "feeder_cow",
+        "feeder_bull",
+        "packer_cow",
+        "packer_bull",
+        "day_old_calf"
+      ]
+    },
+    "head_count": {
+      "type": "number"
+    },
+    "purchase_weight": {
+      "type": "number",
+      "description": "lbs per head"
+    },
+    "current_weight": {
+      "type": "number"
+    },
+    "target_weight": {
+      "type": "number"
+    },
+    "purchase_price": {
+      "type": "number",
+      "description": "$/cwt"
+    },
+    "purchase_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "yard": {
+      "type": "string"
+    },
+    "pen": {
+      "type": "string"
+    },
+    "cog": {
+      "type": "number",
+      "description": "Cost of gain $/lb"
+    },
+    "yardage": {
+      "type": "number",
+      "description": "$/head/day",
+      "default": 0.45
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "sold",
+        "transferred",
+        "dead"
+      ],
+      "default": "active"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "calf_ranch",
+        "grower",
+        "feedyard",
+        "finish",
+        "rail"
+      ],
+      "default": "calf_ranch"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "cattle_class",
+    "head_count",
+    "purchase_weight",
+    "purchase_price",
+    "purchase_date"
+  ]
+}

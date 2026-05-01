@@ -5,43 +5,61 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-// Add page imports here
+import Layout from '@/components/Layout';
+
+// Page imports
+import Dashboard from './pages/Dashboard';
+import MarketInputsPage from './pages/MarketInputs';
+import ROILadder from './pages/ROILadder';
+import CutoutEngine from './pages/CutoutEngine';
+import EnterpriseModel from './pages/EnterpriseModel';
+import WeeklyPlaybook from './pages/WeeklyPlaybook';
+import CattleLots from './pages/CattleLots';
+import Sensitivity from './pages/Sensitivity';
+import Trucking from './pages/Trucking';
+import GlobalIntel from './pages/GlobalIntel';
+import MasterDocument from './pages/MasterDocument';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
-  // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-border border-t-primary rounded-full animate-spin"></div>
+          <div className="font-bebas text-xl text-primary tracking-widest">LOADING CONTINENTAL</div>
+        </div>
       </div>
     );
   }
 
-  // Handle authentication errors
   if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
-      navigateToLogin();
-      return null;
-    }
+    if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
+    else if (authError.type === 'auth_required') { navigateToLogin(); return null; }
   }
 
-  // Render the main app
   return (
     <Routes>
-      {/* Add your page Route elements here */}
+      <Route element={<Layout />}>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/market" element={<MarketInputsPage />} />
+        <Route path="/roi-ladder" element={<ROILadder />} />
+        <Route path="/cutout" element={<CutoutEngine />} />
+        <Route path="/enterprise" element={<EnterpriseModel />} />
+        <Route path="/playbook" element={<WeeklyPlaybook />} />
+        <Route path="/lots" element={<CattleLots />} />
+        <Route path="/sensitivity" element={<Sensitivity />} />
+        <Route path="/trucking" element={<Trucking />} />
+        <Route path="/global" element={<GlobalIntel />} />
+        <Route path="/document" element={<MasterDocument />} />
+      </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
 };
 
-
 function App() {
-
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
@@ -51,7 +69,7 @@ function App() {
         <Toaster />
       </QueryClientProvider>
     </AuthProvider>
-  )
+  );
 }
 
-export default App
+export default App;

@@ -1,0 +1,74 @@
+{
+  "name": "MarketInputs",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "lc_futures": {
+      "type": "number",
+      "description": "Live Cattle futures $/cwt"
+    },
+    "gf_futures": {
+      "type": "number",
+      "description": "Feeder Cattle futures $/cwt"
+    },
+    "corn_price": {
+      "type": "number",
+      "description": "Corn $/bu"
+    },
+    "sbm_price": {
+      "type": "number",
+      "description": "Soybean Meal $/ton"
+    },
+    "choice_cutout": {
+      "type": "number",
+      "description": "Choice cutout $/cwt"
+    },
+    "select_cutout": {
+      "type": "number",
+      "description": "Select cutout $/cwt"
+    },
+    "prime_cutout": {
+      "type": "number",
+      "description": "Prime cutout $/cwt"
+    },
+    "trim_90s": {
+      "type": "number",
+      "description": "90s trim $/lb"
+    },
+    "trim_50s": {
+      "type": "number",
+      "description": "50s trim $/lb"
+    },
+    "basis_southern_plains": {
+      "type": "number",
+      "description": "Basis Southern Plains $/cwt"
+    },
+    "import_volume": {
+      "type": "string",
+      "enum": [
+        "high",
+        "normal",
+        "low"
+      ],
+      "default": "normal"
+    },
+    "export_volume": {
+      "type": "string",
+      "enum": [
+        "high",
+        "normal",
+        "low"
+      ],
+      "default": "normal"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "date"
+  ]
+}
