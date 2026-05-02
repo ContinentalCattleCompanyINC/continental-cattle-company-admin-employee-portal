@@ -33,6 +33,7 @@ import AIControlCenter from './pages/AIControlCenter';
 import MasterControlDashboard from './pages/MasterControlDashboard';
 import ValidationDashboard from './pages/ValidationDashboard';
 import SystemHealthDashboard from './pages/SystemHealthDashboard';
+import AIPlatformManagement from './pages/AIPlatformManagement';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -81,6 +82,7 @@ const AuthenticatedApp = () => {
         <Route path="/master-control" element={<RoleGate requiredRole="admin"><MasterControlDashboard /></RoleGate>} />
         <Route path="/validation" element={<RoleGate requiredRole="admin"><ValidationDashboard /></RoleGate>} />
         <Route path="/system-health" element={<RoleGate requiredRole="admin"><SystemHealthDashboard /></RoleGate>} />
+        <Route path="/ai-management" element={<RoleGate requiredRole="admin"><AIPlatformManagement /></RoleGate>} />
         <Route path="/settings" element={<RoleGate requiredRole="admin"><Settings /></RoleGate>} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
