@@ -1,0 +1,66 @@
+{
+  "name": "CattleProgram",
+  "type": "object",
+  "properties": {
+    "program_name": {
+      "type": "string",
+      "description": "Program identifier (P1, P2, P3, etc)"
+    },
+    "title": {
+      "type": "string"
+    },
+    "cattle_class": {
+      "type": "string",
+      "description": "Holstein Steers, Fed Cows, Smaller Cows, etc"
+    },
+    "volume_per_period": {
+      "type": "number",
+      "description": "Head count or loads per cycle"
+    },
+    "frequency": {
+      "type": "string",
+      "description": "2 loads/week, Every 120 days, etc"
+    },
+    "source_location": {
+      "type": "string"
+    },
+    "destination_location": {
+      "type": "string"
+    },
+    "annual_volume": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "planning"
+      ]
+    },
+    "buy_weight": {
+      "type": "number"
+    },
+    "target_weight": {
+      "type": "number"
+    },
+    "average_shrink": {
+      "type": "number",
+      "description": "As percentage"
+    },
+    "cost_of_gain": {
+      "type": "number"
+    },
+    "expected_roi_percent": {
+      "type": "number"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "program_name",
+    "title",
+    "status"
+  ]
+}

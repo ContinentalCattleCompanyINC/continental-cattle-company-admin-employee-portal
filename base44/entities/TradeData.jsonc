@@ -1,0 +1,56 @@
+{
+  "name": "TradeData",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "product_type": {
+      "type": "string",
+      "enum": [
+        "beef_veal",
+        "cattle",
+        "lamb_mutton"
+      ]
+    },
+    "country": {
+      "type": "string"
+    },
+    "trade_type": {
+      "type": "string",
+      "enum": [
+        "import",
+        "export"
+      ]
+    },
+    "quantity": {
+      "type": "number"
+    },
+    "unit": {
+      "type": "string",
+      "enum": [
+        "head",
+        "1000_pounds_carcass_wt"
+      ]
+    },
+    "ytd_volume": {
+      "type": "number"
+    },
+    "prior_year_volume": {
+      "type": "number"
+    },
+    "percent_change": {
+      "type": "number"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "date",
+    "product_type",
+    "country",
+    "trade_type"
+  ]
+}

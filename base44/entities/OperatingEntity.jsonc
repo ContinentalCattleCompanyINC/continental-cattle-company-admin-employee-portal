@@ -1,0 +1,54 @@
+{
+  "name": "OperatingEntity",
+  "type": "object",
+  "properties": {
+    "entity_name": {
+      "type": "string"
+    },
+    "entity_type": {
+      "type": "string",
+      "enum": [
+        "LLC",
+        "C-Corp",
+        "Trust",
+        "Partnership"
+      ]
+    },
+    "primary_function": {
+      "type": "string"
+    },
+    "revenue_stream": {
+      "type": "string"
+    },
+    "monthly_revenue": {
+      "type": "number"
+    },
+    "monthly_expenses": {
+      "type": "number"
+    },
+    "annual_revenue": {
+      "type": "number"
+    },
+    "annual_expenses": {
+      "type": "number"
+    },
+    "responsible_manager": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "planning"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "entity_name",
+    "entity_type"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "name": "HealthProtocol",
+  "type": "object",
+  "properties": {
+    "protocol_name": {
+      "type": "string"
+    },
+    "cattle_class": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string"
+    },
+    "timing": {
+      "type": "string",
+      "description": "Arrival, Day 0, etc"
+    },
+    "product": {
+      "type": "string"
+    },
+    "dosage": {
+      "type": "string"
+    },
+    "bqa_standard": {
+      "type": "string"
+    },
+    "responsible_person": {
+      "type": "string"
+    },
+    "cost_per_head": {
+      "type": "number"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "protocol_name",
+    "cattle_class",
+    "action"
+  ]
+}

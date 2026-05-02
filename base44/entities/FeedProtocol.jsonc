@@ -1,0 +1,53 @@
+{
+  "name": "FeedProtocol",
+  "type": "object",
+  "properties": {
+    "commodity_name": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "unit_price": {
+      "type": "number"
+    },
+    "unit_type": {
+      "type": "string",
+      "enum": [
+        "per_ton",
+        "per_bale",
+        "per_bushel",
+        "per_cwt"
+      ]
+    },
+    "tdn_percent": {
+      "type": "number",
+      "description": "Total Digestible Nutrients percentage"
+    },
+    "cp_percent": {
+      "type": "number",
+      "description": "Crude Protein percentage"
+    },
+    "daily_intake_head": {
+      "type": "number",
+      "description": "lbs per head per day"
+    },
+    "cost_per_ton": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "discontinued"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "commodity_name",
+    "source"
+  ]
+}

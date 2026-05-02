@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import {
   LayoutDashboard, TrendingUp, Calculator, BarChart3,
-  Beef, Truck, Globe, BookOpen, Settings, ShieldAlert, Activity, Menu, X, DollarSign
+  Beef, Truck, Globe, BookOpen, Settings, ShieldAlert, Activity, Menu, X, DollarSign,
+  Briefcase, Pill
 } from 'lucide-react';
 
 const navItems = [
@@ -14,6 +15,10 @@ const navItems = [
   { label: 'Enterprise Model', icon: Beef, path: '/enterprise' },
   { label: 'Weekly Playbook', icon: TrendingUp, path: '/playbook' },
   { label: 'Cattle Lots', icon: Beef, path: '/lots' },
+  { label: 'Operational Programs', icon: Briefcase, path: '/programs' },
+  { label: 'Entity Financials', icon: DollarSign, path: '/entity-financials' },
+  { label: 'Feed & Health', icon: Pill, path: '/feed-health' },
+  { label: 'Trade Analytics', icon: Globe, path: '/trade-analytics' },
   { label: 'Sensitivity', icon: ShieldAlert, path: '/sensitivity' },
   { label: 'Trucking', icon: Truck, path: '/trucking' },
   { label: 'Global Intel', icon: Globe, path: '/global' },

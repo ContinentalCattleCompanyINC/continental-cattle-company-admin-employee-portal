@@ -22,6 +22,10 @@ import MasterDocument from './pages/MasterDocument';
 import Approvals from './pages/Approvals';
 import Settings from './pages/Settings';
 import PurchaseCalculator from './pages/PurchaseCalculator';
+import OperationalPrograms from './pages/OperationalPrograms';
+import EntityFinancials from './pages/EntityFinancials';
+import FeedAndHealth from './pages/FeedAndHealth';
+import TradeAnalytics from './pages/TradeAnalytics';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -59,6 +63,10 @@ const AuthenticatedApp = () => {
         <Route path="/approvals" element={<Approvals />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/purchase-calculator" element={<PurchaseCalculator />} />
+        <Route path="/programs" element={<OperationalPrograms />} />
+        <Route path="/entity-financials" element={<EntityFinancials />} />
+        <Route path="/feed-health" element={<FeedAndHealth />} />
+        <Route path="/trade-analytics" element={<TradeAnalytics />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
