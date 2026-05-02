@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
+import { useTheme } from '@/lib/ThemeProvider';
 import SectionHeader from '@/components/SectionHeader';
-import { AlertTriangle, LogOut, Trash2, User, Shield, AlertCircle } from 'lucide-react';
+import { AlertTriangle, LogOut, Trash2, User, Shield, AlertCircle, Moon, Sun } from 'lucide-react';
 
 export default function Settings() {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [deleteStep, setDeleteStep] = useState(0); // 0=idle, 1=confirm, 2=final
   const [deleteInput, setDeleteInput] = useState('');
 
@@ -54,6 +56,24 @@ export default function Settings() {
           <Shield className="w-3.5 h-3.5" />
           <span>Role: <span className="text-primary capitalize">{user?.role || 'user'}</span></span>
         </div>
+      </div>
+
+      {/* Theme */}
+      <div className="bg-card border border-border rounded-lg p-5">
+        <h3 className="font-bebas text-lg text-foreground mb-3">APPEARANCE</h3>
+        <button
+          onClick={toggleTheme}
+          className="flex items-center gap-3 w-full px-4 py-3 rounded-lg bg-secondary hover:bg-secondary/70 transition-colors text-foreground"
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-4 h-4 text-warning" />
+          ) : (
+            <Moon className="w-4 h-4 text-primary" />
+          )}
+          <span className="text-sm font-medium">
+            {theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          </span>
+        </button>
       </div>
 
       {/* Sign Out */}
