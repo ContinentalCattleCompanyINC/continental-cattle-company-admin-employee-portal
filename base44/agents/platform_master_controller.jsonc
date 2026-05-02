@@ -98,7 +98,39 @@
       "allowed_operations": [
         "read"
       ]
+    },
+    {
+      "function_name": "masterSystemOrchestrator",
+      "description": "Trigger complete platform audits"
+    },
+    {
+      "function_name": "masterOperationsOrchestrator",
+      "description": "Market operations validation"
+    },
+    {
+      "function_name": "fetchLiveMarketData",
+      "description": "Live CME/USDA data pulls"
+    },
+    {
+      "function_name": "validateCrossDomainSync",
+      "description": "Cross-domain data integrity"
+    },
+    {
+      "function_name": "bidirectionalSync",
+      "description": "Manage domain synchronization"
     }
   ],
+  "app_user_connector_configs": [],
+  "selected_skill_names": [],
+  "selected_workspace_skill_ids": [],
+  "model": "automatic",
+  "whatsapp_greeting": null,
+  "telegram_greeting": null,
+  "line_greeting": null,
+  "memory_config": {
+    "enabled": true,
+    "scope": "both",
+    "instructions": null
+  },
   "name": "platform_master_controller"
 }
