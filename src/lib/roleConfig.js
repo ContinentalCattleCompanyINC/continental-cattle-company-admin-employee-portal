@@ -1,5 +1,26 @@
 // Role-based access control configuration
 export const ROLE_CONFIG = {
+  super_admin: {
+    label: 'Super Administrator',
+    description: 'Unlimited access to all platform features and data',
+    permissions: [
+      'view_dashboard',
+      'view_market',
+      'view_roi',
+      'view_lots',
+      'view_playbook',
+      'view_programs',
+      'view_financials',
+      'view_carcass_quality',
+      'view_approvals',
+      'view_settings',
+      'view_master_document',
+      'manage_users',
+      'approve_orders',
+      'edit_settings',
+      'manage_all_entities',
+    ],
+  },
   admin: {
     label: 'Administrator',
     description: 'Full access to all platform features and data',
@@ -18,6 +39,29 @@ export const ROLE_CONFIG = {
       'manage_users',
       'approve_orders',
       'edit_settings',
+    ],
+  },
+  office_manager: {
+    label: 'Office Manager',
+    description: 'Manage documents, users, and office operations',
+    permissions: [
+      'view_dashboard',
+      'view_market',
+      'view_lots',
+      'view_master_document',
+      'manage_users',
+      'manage_documents',
+      'edit_office_info',
+    ],
+  },
+  attorney_cpa: {
+    label: 'Attorney / CPA',
+    description: 'Access to legal, tax, and financial documents',
+    permissions: [
+      'view_master_document',
+      'view_financials',
+      'view_contracts',
+      'view_bank_statements',
     ],
   },
   manager: {

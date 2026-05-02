@@ -12,7 +12,7 @@ export default function EntityFinancials() {
   const queryClient = useQueryClient();
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
-  const isAuthorized = user?.role === 'admin';
+  const isAuthorized = ['super_admin', 'admin', 'attorney_cpa'].includes(user?.role);
 
   const { data: entities } = useQuery({
     queryKey: ['operatingEntities'],

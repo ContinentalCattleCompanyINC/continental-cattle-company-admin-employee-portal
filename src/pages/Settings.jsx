@@ -8,8 +8,8 @@ export default function Settings() {
   const [deleteStep, setDeleteStep] = useState(0); // 0=idle, 1=confirm, 2=final
   const [deleteInput, setDeleteInput] = useState('');
 
-  // Only admin can access settings
-  if (user?.role !== 'admin') {
+  // Only super admin and admin can access settings
+  if (!['super_admin', 'admin'].includes(user?.role)) {
     return (
       <div className="p-6 flex items-center justify-center min-h-screen">
         <div className="text-center">

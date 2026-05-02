@@ -145,8 +145,8 @@ export default function Approvals() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['publicOrders'] }),
   });
 
-  // Only admin can access approvals
-  if (user?.role !== 'admin') {
+  // Only super admin and admin can access approvals
+  if (!['super_admin', 'admin'].includes(user?.role)) {
     return (
       <div className="p-6 flex items-center justify-center min-h-screen">
         <div className="text-center">
