@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import {
   LayoutDashboard, TrendingUp, Calculator, BarChart3,
-  Beef, Truck, Globe, BookOpen, Settings, ShieldAlert, Activity
+  Beef, Truck, Globe, BookOpen, Settings, ShieldAlert, Activity, Menu, X
 } from 'lucide-react';
 
 const navItems = [
@@ -22,11 +23,12 @@ const navItems = [
 
 export default function Layout() {
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <aside className="w-56 bg-card border-r border-border flex flex-col overflow-hidden">
+      <aside className={`${sidebarOpen ? 'w-56' : 'w-0'} bg-card border-r border-border flex flex-col overflow-hidden transition-all duration-300`}>
         {/* Logo */}
         <div className="p-4 border-b border-border">
           <div className="flex items-center gap-3">
@@ -72,8 +74,19 @@ export default function Layout() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        <Outlet />
+      <main className="flex-1 overflow-y-auto flex flex-col">
+        <div className="flex items-center gap-2 p-4 border-b border-border bg-card/50">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-1 hover:bg-secondary rounded-md transition-colors"
+            aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+          >
+            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <Outlet />
+        </div>
       </main>
     </div>
   );
