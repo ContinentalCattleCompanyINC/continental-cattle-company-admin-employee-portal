@@ -100,14 +100,20 @@
 }
 
 html, body {
-  overscroll-behavior: none;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+html {
+  height: 100%;
 }
 
 button, a, [role="button"] {
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
+  touch-action: auto;
 }
 
 svg, [class*="lucide"] {
