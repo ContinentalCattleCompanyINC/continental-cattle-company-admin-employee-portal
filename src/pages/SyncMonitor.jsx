@@ -6,6 +6,7 @@ import SectionHeader from '@/components/SectionHeader';
 import { Activity, CheckCircle, AlertCircle, Zap, RefreshCw, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import CrossDomainSyncMonitor from '@/components/CrossDomainSyncMonitor';
 
 export default function SyncMonitor() {
   const { user } = useAuth();
@@ -229,6 +230,12 @@ export default function SyncMonitor() {
         </div>
       </div>
 
+      {/* Cross-Domain Data Sync Audit */}
+      <div className="space-y-4">
+        <h3 className="font-bebas text-lg text-foreground">CROSS-DOMAIN DATA VALIDATION</h3>
+        <CrossDomainSyncMonitor />
+      </div>
+
       {/* Documentation */}
       <div className="bg-secondary/20 border border-border/50 rounded-lg p-5">
         <h3 className="font-bebas text-sm text-foreground mb-2">SYNC ARCHITECTURE</h3>
@@ -239,6 +246,7 @@ export default function SyncMonitor() {
           <p>✓ <strong>Status Changes</strong> (approved/denied) reflect across both domains in real-time</p>
           <p>✓ <strong>Hourly Catchall</strong> ensures no missed updates between domains</p>
           <p>✓ <strong>Enterprise-Grade</strong> with audit logs, dual-domain compliance, instant notifications</p>
+          <p>✓ <strong>Data Integrity</strong> continuous validation of calculations, projections, and sync across all tools</p>
         </div>
       </div>
     </div>
