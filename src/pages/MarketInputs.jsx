@@ -44,8 +44,8 @@ export default function MarketInputsPage() {
     queryKey: ['marketInputs'],
     queryFn: () => base44.entities.MarketInputs.list('-date', 10),
     initialData: [],
-    staleTime: 2000,
-    refetchInterval: 8000,
+    staleTime: 1000,
+    refetchInterval: 3000,
   });
 
   // Real-time sync

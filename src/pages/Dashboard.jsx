@@ -26,16 +26,16 @@ export default function Dashboard() {
     queryKey: ['marketInputs'],
     queryFn: () => base44.entities.MarketInputs.list('-date', 1),
     initialData: [],
-    staleTime: 10000,
-    refetchInterval: 30000,
+    staleTime: 1000,
+    refetchInterval: 3000,
   });
 
   const { data: lots } = useQuery({
     queryKey: ['cattleLots'],
     queryFn: () => base44.entities.CattleLot.filter({ status: 'active' }),
     initialData: [],
-    staleTime: 10000,
-    refetchInterval: 30000,
+    staleTime: 1000,
+    refetchInterval: 3000,
   });
 
   // Real-time sync for market inputs
@@ -51,8 +51,8 @@ export default function Dashboard() {
   });
 
   // Auto-refetch on window focus
-  useAutoRefetch(queryClient, ['marketInputs'], 30000);
-  useAutoRefetch(queryClient, ['cattleLots'], 30000);
+  useAutoRefetch(queryClient, ['marketInputs'], 3000);
+  useAutoRefetch(queryClient, ['cattleLots'], 3000);
 
   const latest = marketInputs?.[0] || {};
   const lc = latest.lc_futures || DEFAULTS.lc;
