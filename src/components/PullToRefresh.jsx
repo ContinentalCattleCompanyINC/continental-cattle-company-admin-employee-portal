@@ -23,9 +23,16 @@ export default function PullToRefresh({ onRefresh, children }) {
       if (container.scrollTop === 0 && startYRef.current > 0) {
         const pullDist = e.touches[0].clientY - startYRef.current;
         if (pullDist > 0) {
-          e.preventDefault();
+          // Only prevent default if we're actively pulling down (not scrolling up)
+          if (pullDist > 10) {
+            e.preventDefault();
+          }
           setPullDistance(Math.min(pullDist, 150));
         }
+      } else {
+        // Reset pull when scrolling normally
+        startYRef.current = 0;
+        setPullDistance(0);
       }
     };
 
