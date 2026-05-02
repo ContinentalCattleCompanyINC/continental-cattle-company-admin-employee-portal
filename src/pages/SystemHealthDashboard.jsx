@@ -86,13 +86,16 @@ export default function SystemHealthDashboard() {
         return null;
       }
     },
-    staleTime: 10000,
-    refetchInterval: autoRefresh ? 30000 : false,
+    staleTime: 5000,
+    refetchInterval: autoRefresh ? 10000 : false,
   });
 
   useEffect(() => {
     if (autoRefresh) {
-      const interval = setInterval(() => refetch(), 30000);
+      const interval = setInterval(() => {
+        refetch();
+        setLastCheck(new Date());
+      }, 10000);
       return () => clearInterval(interval);
     }
   }, [autoRefresh, refetch]);
