@@ -23,6 +23,10 @@ export default function PurchaseCalculator() {
     costOfGain: 0.85,
     yardage: 0.45,
     daysOnFeed: 180,
+    deathLossPercent: 1.5,
+    interestRate: 6.5,
+    freightCostPerHead: 25,
+    shrinkPercent: 3,
   });
 
   // Cattle class definitions
@@ -59,13 +63,30 @@ export default function PurchaseCalculator() {
 
   // Calculate ROI for each scenario
   const scenarios = useMemo(() => {
+    // Purchase and freight costs
     const purchase_cost = (inputs.purchaseWeight * inputs.purchasePrice) / 100;
+    const freight_cost = inputs.freightCostPerHead;
+    
+    // Feed and yardage
     const total_feed_cost = inputs.costOfGain * (inputs.targetWeight - inputs.purchaseWeight);
     const yardage_cost = inputs.yardage * inputs.daysOnFeed;
-    const total_cost_per_head = purchase_cost + total_feed_cost + yardage_cost;
     
+    // Interest on average capital (purchase + freight)
+    const avg_capital = purchase_cost + freight_cost + (total_feed_cost / 2);
+    const interest_cost = (avg_capital * inputs.interestRate / 100 * inputs.daysOnFeed) / 365;
+    
+    // Death loss (on total cost invested)
+    const total_before_death = purchase_cost + freight_cost + total_feed_cost + yardage_cost;
+    const death_loss_cost = total_before_death * (inputs.deathLossPercent / 100);
+    
+    // Total cost per head (assuming survive)
+    const total_cost_per_head = purchase_cost + freight_cost + total_feed_cost + yardage_cost + interest_cost + death_loss_cost;
+    
+    // Revenue calculation
     const sellPrice = lc;
-    const revenue_per_head = (inputs.targetWeight * sellPrice) / 100;
+    const sale_weight_with_shrink = inputs.targetWeight * (1 - inputs.shrinkPercent / 100);
+    const revenue_per_head = (sale_weight_with_shrink * sellPrice) / 100;
+    
     const profit_per_head = revenue_per_head - total_cost_per_head;
     const roi_percent = (profit_per_head / total_cost_per_head) * 100;
 
@@ -76,6 +97,12 @@ export default function PurchaseCalculator() {
       return {
         ...cattle,
         totalCost: total_cost_per_head,
+        purchaseCost: purchase_cost,
+        freightCost: freight_cost,
+        feedCost: total_feed_cost,
+        yardageCost: yardage_cost,
+        interestCost: interest_cost,
+        deathLossCost: death_loss_cost,
         profit: cattle_profit,
         roi: Math.max(cattle_roi, -100),
         revenue: revenue_per_head
@@ -166,7 +193,55 @@ export default function PurchaseCalculator() {
                 />
               </div>
 
-              <div className="text-xs text-muted-foreground pt-2 border-t border-border">
+              <div className="pt-3 border-t border-border">
+                <h4 className="text-xs font-semibold text-foreground mb-3">ADDITIONAL COSTS</h4>
+                
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Death Loss (%)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={inputs.deathLossPercent}
+                    onChange={(e) => setInputs({...inputs, deathLossPercent: Number(e.target.value)})}
+                    className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Interest Rate (%/year)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={inputs.interestRate}
+                    onChange={(e) => setInputs({...inputs, interestRate: Number(e.target.value)})}
+                    className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Freight ($/head)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={inputs.freightCostPerHead}
+                    onChange={(e) => setInputs({...inputs, freightCostPerHead: Number(e.target.value)})}
+                    className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Shrink on Sale (%)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={inputs.shrinkPercent}
+                    onChange={(e) => setInputs({...inputs, shrinkPercent: Number(e.target.value)})}
+                    className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground"
+                  />
+                </div>
+              </div>
+
+              <div className="text-xs text-muted-foreground pt-3 border-t border-border">
                 <div className="mb-1">Live Cattle: ${lc}/cwt</div>
                 <div>Date: {format(new Date(), 'MMM d, yyyy')}</div>
               </div>
@@ -205,6 +280,37 @@ export default function PurchaseCalculator() {
                 <div>
                   <div className="text-muted-foreground text-xs mb-1">Sale Revenue/Head</div>
                   <div className="text-sm text-foreground">${bestROI.revenue.toFixed(2)}</div>
+                </div>
+              </div>
+
+              {/* Cost Breakdown */}
+              <div className="mt-4 pt-4 border-t border-success/20">
+                <div className="text-xs text-muted-foreground mb-2">COST BREAKDOWN</div>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span>Purchase</span>
+                    <span className="text-foreground">${bestROI.purchaseCost.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Freight</span>
+                    <span className="text-foreground">${bestROI.freightCost.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Feed</span>
+                    <span className="text-foreground">${bestROI.feedCost.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Yardage</span>
+                    <span className="text-foreground">${bestROI.yardageCost.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Interest</span>
+                    <span className="text-foreground">${bestROI.interestCost.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Death Loss</span>
+                    <span className="text-foreground">${bestROI.deathLossCost.toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
             </div>
