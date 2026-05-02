@@ -20,6 +20,7 @@ import Trucking from './pages/Trucking';
 import GlobalIntel from './pages/GlobalIntel';
 import MasterDocument from './pages/MasterDocument';
 import Approvals from './pages/Approvals';
+import Settings from './pages/Settings';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -55,6 +56,7 @@ const AuthenticatedApp = () => {
         <Route path="/global" element={<GlobalIntel />} />
         <Route path="/document" element={<MasterDocument />} />
         <Route path="/approvals" element={<Approvals />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

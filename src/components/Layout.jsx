@@ -3,8 +3,10 @@ import { Link, useLocation, Outlet } from 'react-router-dom';
 import {
   LayoutDashboard, TrendingUp, Calculator, BarChart3,
   Beef, Truck, ShieldAlert, Globe, BookOpen, Menu, X,
-  ChevronRight, Activity
+  ChevronRight, Activity, Settings
 } from 'lucide-react';
+import MobileHeader from '@/components/MobileHeader';
+import MobileTabBar from '@/components/MobileTabBar';
 
 const navItems = [
   { label: 'Command Center', icon: LayoutDashboard, path: '/' },
@@ -19,6 +21,7 @@ const navItems = [
   { label: 'Global Intel', icon: Globe, path: '/global' },
   { label: 'Master Document', icon: BookOpen, path: '/document' },
   { label: 'Approvals', icon: ShieldAlert, path: '/approvals' },
+  { label: 'Settings', icon: Settings, path: '/settings' },
 ];
 
 export default function Layout() {
@@ -26,9 +29,11 @@ export default function Layout() {
   const location = useLocation();
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 flex-shrink-0 bg-card border-r border-border flex flex-col`}>
+    <div className="flex flex-col md:flex-row h-screen bg-background overflow-hidden">
+      <MobileHeader />
+      <MobileTabBar />
+      {/* Sidebar — hidden on mobile */}
+      <aside className={`hidden md:flex ${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 flex-shrink-0 bg-card border-r border-border flex-col`}>
         {/* Logo */}
         <div className="p-4 border-b border-border flex items-center gap-3">
           <div className="w-10 h-10 flex-shrink-0 rounded overflow-hidden bg-[#D2782A]">
@@ -86,7 +91,7 @@ export default function Layout() {
       </aside>
 
       {/* Main */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
         <Outlet />
       </main>
     </div>
