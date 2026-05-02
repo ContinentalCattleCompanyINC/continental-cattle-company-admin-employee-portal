@@ -1,0 +1,72 @@
+{
+  "name": "DealCalculator",
+  "type": "object",
+  "properties": {
+    "deal_type": {
+      "type": "string",
+      "enum": [
+        "feeder_cow",
+        "finished_cattle",
+        "direct_kill",
+        "specific_deal"
+      ],
+      "description": "Type of deal structure"
+    },
+    "deal_name": {
+      "type": "string",
+      "description": "Deal identifier (e.g., Buffalo $1.90 Cows)"
+    },
+    "buy_weight": {
+      "type": "number",
+      "description": "Starting weight lbs"
+    },
+    "buy_price_per_lb": {
+      "type": "number"
+    },
+    "target_weight": {
+      "type": "number",
+      "description": "Finish weight lbs"
+    },
+    "cost_of_gain": {
+      "type": "number",
+      "description": "$/lb of gain"
+    },
+    "death_loss_percent": {
+      "type": "number",
+      "description": "Mortality rate %"
+    },
+    "interest_rate": {
+      "type": "number",
+      "description": "Annual % rate"
+    },
+    "trucking_in": {
+      "type": "number",
+      "description": "$/head or $/load freight in"
+    },
+    "trucking_out": {
+      "type": "number",
+      "description": "$/head or $/load freight out"
+    },
+    "pencil_shrink": {
+      "type": "number",
+      "description": "Percentage"
+    },
+    "days_on_feed": {
+      "type": "number"
+    },
+    "slaughter_cutout_price": {
+      "type": "number",
+      "description": "Choice/Select $/cwt cutout value"
+    },
+    "expected_profit_per_head": {
+      "type": "number"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "deal_type",
+    "deal_name"
+  ]
+}
