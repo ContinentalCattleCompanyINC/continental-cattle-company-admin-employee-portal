@@ -14,24 +14,19 @@ export default function PullToRefresh({ onRefresh, children }) {
     if (!container) return;
 
     const handleTouchStart = (e) => {
-      if (container.scrollTop === 0) {
-        startYRef.current = e.touches[0].clientY;
-      }
+      startYRef.current = e.touches[0].clientY;
     };
 
     const handleTouchMove = (e) => {
-      if (container.scrollTop === 0 && startYRef.current > 0) {
-        const pullDist = e.touches[0].clientY - startYRef.current;
-        if (pullDist > 0) {
-          // Only prevent default if we're actively pulling down (not scrolling up)
-          if (pullDist > 10) {
-            e.preventDefault();
-          }
-          setPullDistance(Math.min(pullDist, 150));
-        }
+      const currentY = e.touches[0].clientY;
+      const pullDist = currentY - startYRef.current;
+      
+      // Only activate pull-to-refresh at top of scroll AND pulling downward
+      if (container.scrollTop === 0 && pullDist > 0) {
+        e.preventDefault();
+        setPullDistance(Math.min(pullDist, 150));
       } else {
-        // Reset pull when scrolling normally
-        startYRef.current = 0;
+        // Allow all normal scrolling
         setPullDistance(0);
       }
     };
@@ -41,16 +36,14 @@ export default function PullToRefresh({ onRefresh, children }) {
         setIsRefreshing(true);
         await onRefresh();
         setIsRefreshing(false);
-        setPullDistance(0);
-      } else {
-        setPullDistance(0);
       }
+      setPullDistance(0);
       startYRef.current = 0;
     };
 
-    container.addEventListener('touchstart', handleTouchStart, false);
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
     container.addEventListener('touchmove', handleTouchMove, { passive: false });
-    container.addEventListener('touchend', handleTouchEnd, false);
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
 
     return () => {
       container.removeEventListener('touchstart', handleTouchStart);

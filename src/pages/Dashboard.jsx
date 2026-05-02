@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -6,6 +6,7 @@ import SectionHeader from '@/components/SectionHeader';
 import StatCard from '@/components/StatCard';
 import PullToRefresh from '@/components/PullToRefresh';
 import { useAutoRefetch, useRealtimeSync } from '@/hooks/useRealtimeSync';
+import { useScrollHealthMonitor } from '@/hooks/useScrollHealthMonitor';
 import {
   TrendingUp, TrendingDown, Activity, AlertTriangle,
   DollarSign, BarChart3, Beef, Truck, ArrowRight, Target, Calculator, Globe, RefreshCw
@@ -21,6 +22,7 @@ const DEFAULTS = {
 export default function Dashboard() {
   const queryClient = useQueryClient();
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  const scrollContainerRef = useRef(null);
 
   const { data: marketInputs } = useQuery({
     queryKey: ['marketInputs'],
@@ -54,6 +56,9 @@ export default function Dashboard() {
   useAutoRefetch(queryClient, ['marketInputs'], 3000);
   useAutoRefetch(queryClient, ['cattleLots'], 3000);
 
+  // Autonomous scroll health monitor
+  useScrollHealthMonitor(scrollContainerRef, '/dashboard');
+
   const latest = marketInputs?.[0] || {};
   const lc = latest.lc_futures || DEFAULTS.lc;
   const gf = latest.gf_futures || DEFAULTS.gf;
@@ -79,7 +84,7 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ['marketInputs'] });
       queryClient.invalidateQueries({ queryKey: ['cattleLots'] });
     }}>
-    <div className="p-6 space-y-6">
+    <div ref={scrollContainerRef} className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
