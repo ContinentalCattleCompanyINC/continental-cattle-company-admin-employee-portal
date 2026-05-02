@@ -3,8 +3,9 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import SectionHeader from '@/components/SectionHeader';
 import { format } from 'date-fns';
-import { Save, TrendingUp, TrendingDown } from 'lucide-react';
+import { Save, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRealtimeSync, useAutoRefetch } from '@/hooks/useRealtimeSync';
 
 const FIELDS = [
   { key: 'lc_futures', label: 'LC Futures', unit: '$/cwt', default: 241.66 },
@@ -22,6 +23,7 @@ const FIELDS = [
 export default function MarketInputsPage() {
   const qc = useQueryClient();
   const today = format(new Date(), 'yyyy-MM-dd');
+  const [lastUpdated, setLastUpdated] = useState(new Date());
 
   const [form, setForm] = useState({
     date: today,
@@ -35,7 +37,17 @@ export default function MarketInputsPage() {
     queryKey: ['marketInputs'],
     queryFn: () => base44.entities.MarketInputs.list('-date', 10),
     initialData: [],
+    staleTime: 2000,
+    refetchInterval: 8000,
   });
+
+  // Real-time sync
+  useRealtimeSync('MarketInputs', () => {
+    qc.invalidateQueries({ queryKey: ['marketInputs'] });
+    setLastUpdated(new Date());
+  });
+
+  useAutoRefetch(qc, ['marketInputs'], 8000);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.MarketInputs.create(data),
@@ -52,11 +64,17 @@ export default function MarketInputsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <SectionHeader
-        title="MARKET INPUTS"
-        subtitle="Daily CME & USDA data entry — drives all calculations across the platform"
-        badge="Live Panel"
-      />
+      <div className="flex items-center justify-between mb-2">
+        <SectionHeader
+          title="MARKET INPUTS"
+          subtitle="Daily CME & USDA data entry — drives all calculations across the platform"
+          badge="Live Panel"
+        />
+        <div className="text-xs text-muted-foreground flex items-center gap-2">
+          <RefreshCw className="w-3 h-3 animate-spin" />
+          Live • {format(lastUpdated, 'h:mm a')}
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Input Form */}

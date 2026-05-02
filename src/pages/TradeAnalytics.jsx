@@ -16,8 +16,8 @@ export default function TradeAnalytics() {
     queryKey: ['tradeData'],
     queryFn: () => base44.entities.TradeData.list('-date'),
     initialData: [],
-    staleTime: 10000,
-    refetchInterval: 30000,
+    staleTime: 2000,
+    refetchInterval: 8000,
   });
 
   useRealtimeSync('TradeData', (event) => {
@@ -25,7 +25,7 @@ export default function TradeAnalytics() {
     setLastUpdated(new Date());
   });
 
-  useAutoRefetch(queryClient, ['tradeData'], 30000);
+  useAutoRefetch(queryClient, ['tradeData'], 8000);
 
   const filtered = useMemo(() => {
     return tradeData.filter(t => t.product_type === selectedProduct);

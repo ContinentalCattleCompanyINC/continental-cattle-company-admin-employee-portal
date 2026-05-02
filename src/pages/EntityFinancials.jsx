@@ -18,8 +18,8 @@ export default function EntityFinancials() {
     queryKey: ['operatingEntities'],
     queryFn: () => base44.entities.OperatingEntity.list('-annual_revenue'),
     initialData: [],
-    staleTime: 10000,
-    refetchInterval: 30000,
+    staleTime: 2000,
+    refetchInterval: 8000,
     enabled: isAuthorized,
   });
 
@@ -28,7 +28,7 @@ export default function EntityFinancials() {
     setLastUpdated(new Date());
   });
 
-  useAutoRefetch(queryClient, ['operatingEntities'], 30000);
+  useAutoRefetch(queryClient, ['operatingEntities'], 8000);
 
   if (!isAuthorized) {
     return (

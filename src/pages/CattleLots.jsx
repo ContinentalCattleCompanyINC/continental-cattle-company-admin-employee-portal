@@ -41,8 +41,8 @@ export default function CattleLots() {
     queryKey: ['cattleLots'],
     queryFn: () => base44.entities.CattleLot.list('-purchase_date'),
     initialData: [],
-    staleTime: 5000,
-    refetchInterval: 15000,
+    staleTime: 2000,
+    refetchInterval: 8000,
   });
 
   // Real-time sync on mount and interval

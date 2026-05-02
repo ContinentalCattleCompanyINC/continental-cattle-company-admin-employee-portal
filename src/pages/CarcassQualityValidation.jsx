@@ -1,26 +1,41 @@
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import SectionHeader from '@/components/SectionHeader';
-import { AlertTriangle, TrendingDown, TrendingUp, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, TrendingDown, TrendingUp, CheckCircle2, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
+import { useRealtimeSync, useAutoRefetch } from '@/hooks/useRealtimeSync';
 
 export default function CarcassQualityValidation() {
   const [selectedOutcomeId, setSelectedOutcomeId] = useState(null);
   const [validationResult, setValidationResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const qc = useQueryClient();
 
   const { data: outcomes } = useQuery({
     queryKey: ['carcassOutcomes'],
     queryFn: () => base44.entities.CarcassOutcomeActual.list('-sale_date', 20),
     initialData: [],
+    staleTime: 2000,
+    refetchInterval: 8000,
   });
 
   const { data: benchmarks } = useQuery({
     queryKey: ['carcassBenchmarks'],
     queryFn: () => base44.entities.CarcassQualityBenchmark.list(),
     initialData: [],
+    staleTime: 5000,
+    refetchInterval: 15000,
   });
+
+  // Real-time sync
+  useRealtimeSync('CarcassOutcomeActual', () => {
+    qc.invalidateQueries({ queryKey: ['carcassOutcomes'] });
+    setLastUpdated(new Date());
+  });
+
+  useAutoRefetch(qc, ['carcassOutcomes'], 8000);
 
   const handleValidate = async (outcomeId) => {
     setLoading(true);
@@ -37,10 +52,16 @@ export default function CarcassQualityValidation() {
 
   return (
     <div className="p-6 space-y-6 max-w-7xl">
-      <SectionHeader 
-        title="CARCASS QUALITY VALIDATION"
-        subtitle="NBQA 2022 benchmarking — flag outcomes & protect margins"
-      />
+      <div className="flex items-center justify-between mb-2">
+        <SectionHeader 
+          title="CARCASS QUALITY VALIDATION"
+          subtitle="NBQA 2022 benchmarking — flag outcomes & protect margins"
+        />
+        <div className="text-xs text-muted-foreground flex items-center gap-2">
+          <RefreshCw className="w-3 h-3 animate-spin" />
+          Live • {format(lastUpdated, 'h:mm a')}
+        </div>
+      </div>
 
       {/* Benchmark Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

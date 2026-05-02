@@ -130,15 +130,15 @@ export default function Approvals() {
   const { data: accounts = [] } = useQuery({
     queryKey: ['customerAccounts'],
     queryFn: () => base44.entities.CustomerAccount.list('-created_date', 100),
-    staleTime: 5000,
-    refetchInterval: 15000,
+    staleTime: 2000,
+    refetchInterval: 8000,
   });
 
   const { data: orders = [] } = useQuery({
     queryKey: ['publicOrders'],
     queryFn: () => base44.entities.PublicOrder.list('-created_date', 100),
-    staleTime: 5000,
-    refetchInterval: 15000,
+    staleTime: 2000,
+    refetchInterval: 8000,
   });
 
   // Real-time sync
