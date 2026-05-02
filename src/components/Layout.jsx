@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/AuthContext';
 import {
   LayoutDashboard, TrendingUp, Calculator, BarChart3,
   Beef, Truck, Globe, BookOpen, Settings, ShieldAlert, Activity, Menu, X, DollarSign,
-  Briefcase, Pill
+  Briefcase, Pill, Zap
 } from 'lucide-react';
 
 const navItemsConfig = [
@@ -26,6 +26,7 @@ const navItemsConfig = [
   { label: 'Global Intel', icon: Globe, path: '/global', roles: ['super_admin', 'admin', 'manager', 'user'] },
   { label: 'Master Document', icon: BookOpen, path: '/document', roles: ['super_admin', 'admin', 'office_manager', 'attorney_cpa'] },
   { label: 'Approvals', icon: ShieldAlert, path: '/approvals', roles: ['super_admin', 'admin'] },
+  { label: 'Sync Monitor', icon: Zap, path: '/sync-monitor', roles: ['super_admin', 'admin'] },
   { label: 'Settings', icon: Settings, path: '/settings', roles: ['super_admin', 'admin'] },
 ];
 

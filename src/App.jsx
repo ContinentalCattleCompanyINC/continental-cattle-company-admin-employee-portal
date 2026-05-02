@@ -28,6 +28,7 @@ import EntityFinancials from './pages/EntityFinancials';
 import FeedAndHealth from './pages/FeedAndHealth';
 import TradeAnalytics from './pages/TradeAnalytics';
 import CarcassQualityValidation from './pages/CarcassQualityValidation';
+import SyncMonitor from './pages/SyncMonitor';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -71,6 +72,7 @@ const AuthenticatedApp = () => {
         <Route path="/trade-analytics" element={<TradeAnalytics />} />
         <Route path="/carcass-quality" element={<RoleGate requiredRole={['admin', 'manager']}><CarcassQualityValidation /></RoleGate>} />
         <Route path="/approvals" element={<RoleGate requiredRole="admin"><Approvals /></RoleGate>} />
+        <Route path="/sync-monitor" element={<RoleGate requiredRole="admin"><SyncMonitor /></RoleGate>} />
         <Route path="/settings" element={<RoleGate requiredRole="admin"><Settings /></RoleGate>} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
