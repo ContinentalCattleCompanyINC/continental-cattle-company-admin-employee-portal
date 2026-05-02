@@ -53,16 +53,14 @@ export default function Layout() {
         {/* Logo */}
         <div className="p-4 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded overflow-hidden bg-[#D2782A] flex-shrink-0">
-              <img
-                src="https://media.base44.com/images/public/69f4e0f8f8f460e805a3eb84/d924dd25e_IMG_6891.png"
-                alt="Logo"
-                className="w-full h-full object-cover"
-              />
-            </div>
+            <img
+              src="https://media.base44.com/images/public/69f4e0f8f8f460e805a3eb84/d924dd25e_IMG_6891.png"
+              alt="Continental Cattle Company"
+              className="w-12 h-12 object-contain flex-shrink-0"
+            />
             <div className="min-w-0">
               <div className="font-bebas text-primary text-sm leading-tight">CONTINENTAL</div>
-              <div className="text-muted-foreground text-xs">Cattle Co</div>
+              <div className="text-muted-foreground text-xs">Cattle Co INC</div>
             </div>
           </div>
         </div>
