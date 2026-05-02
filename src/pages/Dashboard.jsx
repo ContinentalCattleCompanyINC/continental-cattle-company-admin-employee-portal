@@ -6,7 +6,7 @@ import SectionHeader from '@/components/SectionHeader';
 import StatCard from '@/components/StatCard';
 import {
   TrendingUp, TrendingDown, Activity, AlertTriangle,
-  DollarSign, BarChart3, Beef, Truck, ArrowRight, Target, Calculator
+  DollarSign, BarChart3, Beef, Truck, ArrowRight, Target, Calculator, Globe
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -178,24 +178,48 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Quick Nav */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {[
-          { label: 'Enter Market Data', path: '/market', icon: Activity },
-          { label: 'Run ROI Ladder', path: '/roi-ladder', icon: Calculator },
-          { label: 'Cutout Engine', path: '/cutout', icon: BarChart3 },
-          { label: 'Enterprise Model', path: '/enterprise', icon: Target },
-          { label: 'Master Document', path: '/document', icon: TrendingUp },
-        ].map((q) => (
-          <Link
-            key={q.path}
-            to={q.path}
-            className="bg-card border border-border hover:border-primary/30 hover:bg-primary/5 rounded-lg p-4 flex flex-col items-center gap-2 transition-all group"
-          >
-            <q.icon className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-            <span className="text-xs text-center text-muted-foreground group-hover:text-foreground transition-colors">{q.label}</span>
-          </Link>
-        ))}
+      {/* Quick Nav - Core Operations */}
+      <div>
+        <h3 className="font-bebas text-lg text-foreground mb-3 tracking-wide">CORE OPERATIONS</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { label: 'Market Inputs', path: '/market', icon: Activity },
+            { label: 'Cattle Lots', path: '/lots', icon: Beef },
+            { label: 'ROI Ladder', path: '/roi-ladder', icon: Calculator },
+            { label: 'Weekly Playbook', path: '/playbook', icon: TrendingUp },
+          ].map((q) => (
+            <Link
+              key={q.path}
+              to={q.path}
+              className="bg-card border border-border hover:border-primary/30 hover:bg-primary/5 rounded-lg p-4 flex items-center gap-3 transition-all group"
+            >
+              <q.icon className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+              <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">{q.label}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Analysis Tools */}
+      <div>
+        <h3 className="font-bebas text-lg text-foreground mb-3 tracking-wide">ANALYSIS & MODELING</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { label: 'Cutout Engine', path: '/cutout', icon: BarChart3 },
+            { label: 'Enterprise Model', path: '/enterprise', icon: Target },
+            { label: 'Global Intel', path: '/global', icon: Globe },
+            { label: 'Sensitivity', path: '/sensitivity', icon: AlertTriangle },
+          ].map((q) => (
+            <Link
+              key={q.path}
+              to={q.path}
+              className="bg-card border border-border hover:border-primary/30 hover:bg-primary/5 rounded-lg p-4 flex items-center gap-3 transition-all group"
+            >
+              <q.icon className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+              <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">{q.label}</span>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );
