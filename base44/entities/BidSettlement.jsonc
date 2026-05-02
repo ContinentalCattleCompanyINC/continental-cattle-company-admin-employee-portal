@@ -1,0 +1,94 @@
+{
+  "name": "BidSettlement",
+  "type": "object",
+  "properties": {
+    "bid_id": {
+      "type": "string",
+      "description": "Reference to Bid"
+    },
+    "cattle_lot_id": {
+      "type": "string"
+    },
+    "buyer_id": {
+      "type": "string"
+    },
+    "seller_id": {
+      "type": "string"
+    },
+    "total_sale_price": {
+      "type": "number",
+      "description": "Total amount buyer paid"
+    },
+    "total_weight": {
+      "type": "number",
+      "description": "Total pounds/weight"
+    },
+    "price_per_unit": {
+      "type": "number"
+    },
+    "commission_percent": {
+      "type": "number",
+      "default": 5,
+      "description": "Continental commission percentage"
+    },
+    "commission_amount": {
+      "type": "number",
+      "description": "Calculated commission"
+    },
+    "freight_cost": {
+      "type": "number",
+      "description": "Total freight/hauling cost"
+    },
+    "other_expenses": {
+      "type": "number",
+      "description": "Other fees and expenses"
+    },
+    "seller_receives": {
+      "type": "number",
+      "description": "Amount paid to seller"
+    },
+    "continental_receives": {
+      "type": "number",
+      "description": "Commission retained"
+    },
+    "expenses_to_collect": {
+      "type": "number",
+      "description": "Expenses to deduct from seller or charge buyer"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "collected",
+        "dispersed"
+      ],
+      "default": "pending"
+    },
+    "buyer_payment_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "seller_payment_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "settlement_document": {
+      "type": "string",
+      "description": "JSON serialized settlement details"
+    },
+    "settlement_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "bid_id",
+    "cattle_lot_id",
+    "buyer_id",
+    "seller_id",
+    "total_sale_price"
+  ]
+}

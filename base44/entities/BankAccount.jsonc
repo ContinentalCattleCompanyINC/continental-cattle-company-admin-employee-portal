@@ -38,7 +38,15 @@
     },
     "account_balance": {
       "type": "number",
-      "description": "Current account balance (synced from bank)"
+      "description": "Current verified account balance from bank"
+    },
+    "available_funds": {
+      "type": "number",
+      "description": "Available funds after holds/pending"
+    },
+    "max_bid_limit": {
+      "type": "number",
+      "description": "Maximum amount user can bid (set to available_funds)"
     },
     "currency": {
       "type": "string",
@@ -58,6 +66,27 @@
       "type": "string",
       "description": "Encrypted OAuth access token"
     },
+    "funds_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Funds have been verified by system"
+    },
+    "verification_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When funds were last verified"
+    },
+    "verification_label": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "verified",
+        "expired",
+        "failed"
+      ],
+      "default": "pending",
+      "description": "Verification status for display"
+    },
     "last_synced": {
       "type": "string",
       "format": "date-time",
@@ -67,6 +96,21 @@
       "type": "boolean",
       "default": true,
       "description": "Account is active and linked"
+    },
+    "fdic_protected": {
+      "type": "boolean",
+      "default": false,
+      "description": "Account is FDIC insured (verified)"
+    },
+    "compliance_status": {
+      "type": "string",
+      "enum": [
+        "compliant",
+        "under_review",
+        "non_compliant"
+      ],
+      "default": "under_review",
+      "description": "Banking regulation compliance status"
     },
     "notes": {
       "type": "string"
@@ -90,22 +134,13 @@
       }
     },
     "read": {
-      "user_condition": {
-        "role": {
-          "$in": [
-            "admin",
-            "manager",
-            "user"
-          ]
-        }
-      }
+      "custom": "Only admin, account owner, and authorized parties can view"
     },
     "update": {
       "user_condition": {
         "role": {
           "$in": [
-            "admin",
-            "manager"
+            "admin"
           ]
         }
       }

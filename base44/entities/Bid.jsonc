@@ -1,0 +1,84 @@
+{
+  "name": "Bid",
+  "type": "object",
+  "properties": {
+    "cattle_lot_id": {
+      "type": "string",
+      "description": "CattleLot reference"
+    },
+    "bidder_type": {
+      "type": "string",
+      "enum": [
+        "user",
+        "entity"
+      ],
+      "description": "Type of bidder"
+    },
+    "bidder_id": {
+      "type": "string",
+      "description": "Bidder email or entity name"
+    },
+    "bid_amount": {
+      "type": "number",
+      "description": "Total bid amount in dollars"
+    },
+    "price_per_unit": {
+      "type": "number",
+      "description": "Price per pound or head"
+    },
+    "unit_type": {
+      "type": "string",
+      "enum": [
+        "lb",
+        "head",
+        "cwt"
+      ],
+      "default": "cwt"
+    },
+    "bank_account_id": {
+      "type": "string",
+      "description": "Verified bank account for payment"
+    },
+    "bid_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "accepted",
+        "rejected",
+        "withdrawn",
+        "expired"
+      ],
+      "default": "active"
+    },
+    "admin_notes": {
+      "type": "string",
+      "description": "Admin negotiation notes"
+    },
+    "accepted_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "accepted_by": {
+      "type": "string",
+      "description": "Admin email who accepted"
+    },
+    "settlement_id": {
+      "type": "string",
+      "description": "Reference to BidSettlement"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "cattle_lot_id",
+    "bidder_type",
+    "bidder_id",
+    "bid_amount",
+    "bank_account_id"
+  ]
+}
