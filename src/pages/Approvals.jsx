@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, CheckCircle, XCircle, Clock, User, ShoppingCart, Truck, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
+import { RefreshCw, CheckCircle, XCircle, Clock, User, ShoppingCart, Truck, ChevronDown, ChevronRight, AlertCircle, Users } from 'lucide-react';
+import UserApprovalPanel from '@/components/UserApprovalPanel';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/AuthContext';
@@ -122,7 +123,7 @@ function OrderRow({ order, onAction }) {
 
 export default function Approvals() {
   const { user } = useAuth();
-  const [tab, setTab] = useState('accounts');
+  const [tab, setTab] = useState('users');
   const [filter, setFilter] = useState('pending');
   const qc = useQueryClient();
   const [lastSync, setLastSync] = useState(new Date());
@@ -221,10 +222,11 @@ export default function Approvals() {
 
       {/* Tabs + Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {[
-            { key: 'accounts', label: `Accounts ${pendingAccounts > 0 ? `(${pendingAccounts} pending)` : ''}` },
-            { key: 'orders', label: `Orders ${pendingOrders > 0 ? `(${pendingOrders} pending)` : ''}` },
+            { key: 'users', label: 'User Accounts' },
+            { key: 'accounts', label: `Customer Accounts ${pendingAccounts > 0 ? `(${pendingAccounts})` : ''}` },
+            { key: 'orders', label: `Orders ${pendingOrders > 0 ? `(${pendingOrders})` : ''}` },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`px-4 py-2 rounded text-sm font-medium transition-colors ${tab === t.key ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground hover:text-foreground'}`}>
@@ -244,6 +246,7 @@ export default function Approvals() {
 
       {/* Content */}
       <div className="space-y-3">
+        {tab === 'users' && <UserApprovalPanel />}
         {tab === 'accounts' && (
           filteredAccounts.length === 0
             ? <div className="text-center py-12 text-muted-foreground">No {filter} accounts</div>

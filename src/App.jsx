@@ -9,6 +9,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import RoleGate from '@/components/RoleGate';
 import Layout from '@/components/Layout';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Navigate } from 'react-router-dom';
 
 // Page imports
 import Dashboard from './pages/Dashboard';
@@ -39,9 +40,13 @@ import ValidationDashboard from './pages/ValidationDashboard';
 import SystemHealthDashboard from './pages/SystemHealthDashboard';
 import AIPlatformManagement from './pages/AIPlatformManagement';
 import AIAdminControl from './pages/AIAdminControl';
+import LoadBoard from './pages/LoadBoard';
+import MyListings from './pages/MyListings';
+import AttorneyPortal from './pages/AttorneyPortal';
+import PendingApprovalScreen from './components/PendingApprovalScreen';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user } = useAuth();
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
@@ -59,10 +64,24 @@ const AuthenticatedApp = () => {
     else if (authError.type === 'auth_required') { navigateToLogin(); return null; }
   }
 
+  // Block pending accounts — show approval waiting screen
+  if (user && user.role === 'pending') {
+    return <PendingApprovalScreen />;
+  }
+
+  const externalPortalMap = {
+    buyer: '/marketplace',
+    seller: '/my-listings',
+    hauler: '/load-board',
+    attorney_cpa: '/attorney-portal',
+  };
+  const externalPortal = user ? externalPortalMap[user.role] : null;
+
   return (
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={
+          externalPortal ? <Navigate to={externalPortal} replace /> :
           <motion.div
             key="dashboard"
             initial={{ opacity: 0, x: 20 }}
@@ -101,7 +120,10 @@ const AuthenticatedApp = () => {
         <Route path="/ai-admin" element={<RoleGate requiredRole="admin"><AIAdminControl /></RoleGate>} />
         <Route path="/bank-linking" element={<BankLinking />} />
         <Route path="/marketplace" element={<Marketplace />} />
-        <Route path="/settings" element={<RoleGate requiredRole="admin"><Settings /></RoleGate>} />
+        <Route path="/load-board" element={<RoleGate requiredRole={['hauler', 'admin', 'super_admin']}><LoadBoard /></RoleGate>} />
+        <Route path="/my-listings" element={<RoleGate requiredRole={['seller', 'admin', 'super_admin']}><MyListings /></RoleGate>} />
+        <Route path="/attorney-portal" element={<RoleGate requiredRole={['attorney_cpa', 'admin', 'super_admin', 'accountant']}><AttorneyPortal /></RoleGate>} />
+        <Route path="/settings" element={<RoleGate requiredRole={['admin', 'super_admin']}><Settings /></RoleGate>} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
