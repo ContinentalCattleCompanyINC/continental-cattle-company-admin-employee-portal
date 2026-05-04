@@ -55,7 +55,7 @@ export default function Layout() {
   return (
     <div className="flex h-screen bg-background flex-col md:flex-row overflow-hidden">
       {/* Sidebar - Desktop + Mobile Modal */}
-       <aside className={`${mobileMenuOpen ? 'fixed inset-0 z-50 w-56' : 'hidden'} md:static md:flex ${sidebarOpen ? 'md:w-56' : 'md:w-0'} bg-card border-r border-border flex-col overflow-y-auto transition-all duration-300`}>
+       <aside className={`${mobileMenuOpen ? 'fixed inset-y-0 left-0 z-50 w-56' : 'hidden'} md:static md:flex ${sidebarOpen ? 'md:w-56' : 'md:w-0'} bg-card border-r border-border flex-col overflow-hidden transition-all duration-300`}>
         {/* Logo */}
         <div className="p-4 border-b border-border">
           <div className="flex items-center gap-3">
@@ -72,7 +72,7 @@ export default function Layout() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-2 space-y-1">
+        <nav className="flex-1 overflow-y-auto min-h-0 p-2 space-y-1">
           {navItems.map((item) => {
             const active = location.pathname === item.path;
             return (
