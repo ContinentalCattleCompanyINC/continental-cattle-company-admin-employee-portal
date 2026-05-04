@@ -1,0 +1,93 @@
+{
+  "name": "LotHealthEvent",
+  "type": "object",
+  "properties": {
+    "cattle_lot_id": {
+      "type": "string",
+      "description": "Link to CattleLot"
+    },
+    "entity": {
+      "type": "string",
+      "enum": [
+        "Continental",
+        "Rincon",
+        "Flying3BarB",
+        "GrandSlam",
+        "FullCount",
+        "BeesonBulls"
+      ]
+    },
+    "yard": {
+      "type": "string"
+    },
+    "pen": {
+      "type": "string"
+    },
+    "event_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "pull",
+        "treatment",
+        "death",
+        "weight_check",
+        "observation",
+        "pregnancy_check",
+        "vaccination",
+        "preg_check"
+      ]
+    },
+    "head_affected": {
+      "type": "number",
+      "default": 1
+    },
+    "diagnosis": {
+      "type": "string"
+    },
+    "treatment": {
+      "type": "string"
+    },
+    "product_used": {
+      "type": "string"
+    },
+    "dosage": {
+      "type": "string"
+    },
+    "cost_per_head": {
+      "type": "number"
+    },
+    "weight_recorded": {
+      "type": "number",
+      "description": "lbs per head if weight check"
+    },
+    "recorded_by": {
+      "type": "string",
+      "description": "Cowboy/employee email"
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "follow_up_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "follow_up_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "event_date",
+    "event_type",
+    "recorded_by"
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "name": "FieldSubmission",
+  "type": "object",
+  "properties": {
+    "submission_type": {
+      "type": "string",
+      "enum": [
+        "lot_listing",
+        "lot_update",
+        "health_event",
+        "weight_update",
+        "load_available"
+      ],
+      "description": "Type of field submission"
+    },
+    "submitted_by": {
+      "type": "string",
+      "description": "User email of submitter"
+    },
+    "entity": {
+      "type": "string",
+      "enum": [
+        "Continental",
+        "Rincon",
+        "Flying3BarB",
+        "GrandSlam",
+        "FullCount",
+        "BeesonBulls"
+      ]
+    },
+    "cattle_lot_id": {
+      "type": "string",
+      "description": "Link to CattleLot if applicable"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "cattle_class": {
+      "type": "string"
+    },
+    "head_count": {
+      "type": "number"
+    },
+    "location": {
+      "type": "string"
+    },
+    "weight_estimate": {
+      "type": "number",
+      "description": "lbs per head estimate"
+    },
+    "price_ask": {
+      "type": "number",
+      "description": "$/cwt asking price"
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of uploaded photo URLs"
+    },
+    "gps_location": {
+      "type": "string",
+      "description": "GPS coordinates or address"
+    },
+    "health_notes": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected",
+        "published"
+      ],
+      "default": "pending"
+    },
+    "admin_notes": {
+      "type": "string"
+    },
+    "reviewed_by": {
+      "type": "string"
+    },
+    "reviewed_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "publish_to_marketplace": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "submission_type",
+    "submitted_by",
+    "title"
+  ]
+}

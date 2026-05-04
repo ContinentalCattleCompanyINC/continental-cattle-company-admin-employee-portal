@@ -7,49 +7,24 @@
       "enum": [
         "super_admin",
         "admin",
-        "accountant",
         "manager",
         "office_manager",
+        "accountant",
+        "attorney_cpa",
+        "field_rep",
+        "sales_rep",
+        "cowboy",
+        "feed_mill",
+        "feed_truck",
+        "hauler",
         "buyer",
         "seller",
-        "hauler",
-        "attorney_cpa",
-        "pending"
-      ],
-      "default": "pending",
-      "description": "User role \u2014 all new external signups start as pending"
-    },
-    "approval_status": {
-      "type": "string",
-      "enum": [
+        "investor",
+        "banker",
         "pending",
-        "approved",
-        "denied"
+        "user"
       ],
-      "default": "pending",
-      "description": "Admin approval status"
-    },
-    "approved_by": {
-      "type": "string",
-      "description": "Admin email who approved or denied"
-    },
-    "approved_date": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "requested_role": {
-      "type": "string",
-      "description": "Role the user signed up requesting"
-    },
-    "company_name": {
-      "type": "string"
-    },
-    "phone": {
-      "type": "string"
-    },
-    "notes": {
-      "type": "string",
-      "description": "Admin notes on this account"
+      "default": "pending"
     }
   }
 }

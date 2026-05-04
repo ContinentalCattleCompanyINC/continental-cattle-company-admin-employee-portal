@@ -1,0 +1,91 @@
+{
+  "name": "PenFeedOrder",
+  "type": "object",
+  "properties": {
+    "entity": {
+      "type": "string",
+      "enum": [
+        "Continental",
+        "Rincon",
+        "Flying3BarB",
+        "GrandSlam",
+        "FullCount",
+        "BeesonBulls"
+      ]
+    },
+    "yard": {
+      "type": "string",
+      "description": "Feedlot/yard name"
+    },
+    "pen": {
+      "type": "string",
+      "description": "Pen identifier"
+    },
+    "cattle_lot_id": {
+      "type": "string"
+    },
+    "head_count": {
+      "type": "number"
+    },
+    "ration_name": {
+      "type": "string",
+      "description": "Ration/blend name"
+    },
+    "lbs_per_head": {
+      "type": "number",
+      "description": "Pounds to feed per head"
+    },
+    "total_lbs": {
+      "type": "number",
+      "description": "Total pounds for this pen"
+    },
+    "feed_time": {
+      "type": "string",
+      "enum": [
+        "morning",
+        "midday",
+        "afternoon",
+        "evening"
+      ],
+      "default": "morning"
+    },
+    "feed_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "ingredients": {
+      "type": "string",
+      "description": "Ingredient list / mix instructions"
+    },
+    "special_instructions": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "scheduled",
+        "mixed",
+        "delivered",
+        "complete"
+      ],
+      "default": "scheduled"
+    },
+    "delivered_by": {
+      "type": "string",
+      "description": "Feed truck driver name/email"
+    },
+    "delivered_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "yard",
+    "pen",
+    "ration_name",
+    "feed_date"
+  ]
+}
