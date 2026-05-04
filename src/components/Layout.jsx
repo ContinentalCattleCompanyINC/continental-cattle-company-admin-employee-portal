@@ -7,7 +7,7 @@ import {
   LayoutDashboard, TrendingUp, Calculator, BarChart3,
   Beef, Truck, Globe, BookOpen, Settings, ShieldAlert, Activity, Menu, X, DollarSign,
   Briefcase, Pill, Zap, Workflow, Shield, ShoppingCart, Scale, ListChecks, Building2,
-  Send, Wheat, HeartPulse
+  Send, Wheat, HeartPulse, Users, Wrench, Brain
 } from 'lucide-react';
 
 const navItemsConfig = [
@@ -30,7 +30,11 @@ const navItemsConfig = [
   { label: 'Field Rep Portal', icon: Send, path: '/field-rep', roles: ['super_admin', 'admin', 'manager', 'field_rep', 'sales_rep'] },
   { label: 'Feedlot Ops', icon: Wheat, path: '/feedlot-ops', roles: ['super_admin', 'admin', 'manager', 'feed_mill', 'feed_truck', 'cowboy'] },
   { label: 'Lot Performance', icon: HeartPulse, path: '/lot-performance', roles: ['super_admin', 'admin', 'manager', 'cowboy', 'field_rep'] },
+  { label: 'Load Board', icon: Truck, path: '/load-board', roles: ['super_admin', 'admin', 'manager', 'dispatch', 'truck_driver', 'truck_owner'] },
+  { label: 'AI Ops Advisor', icon: Brain, path: '/ai-ops-advisor', roles: ['super_admin', 'admin', 'manager'] },
   { label: 'AI Feed Planner', icon: Zap, path: '/ai-feed-planner', roles: ['super_admin', 'admin', 'manager'] },
+  { label: 'Staff Portal', icon: Users, path: '/staff-portal', roles: ['super_admin', 'admin', 'office_manager', 'manager'] },
+  { label: 'Maintenance', icon: Wrench, path: '/maintenance', roles: ['super_admin', 'admin', 'manager', 'office_manager', 'welder', 'maintenance', 'cowboy'] },
   { label: 'Feed & Health', icon: Pill, path: '/feed-health', roles: ['super_admin', 'admin', 'manager'] },
   { label: 'Trade Analytics', icon: Globe, path: '/trade-analytics', roles: ['super_admin', 'admin', 'manager'] },
   { label: 'Carcass Quality', icon: ShieldAlert, path: '/carcass-quality', roles: ['super_admin', 'admin', 'manager'] },

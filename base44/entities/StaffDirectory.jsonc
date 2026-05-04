@@ -1,0 +1,106 @@
+{
+  "name": "StaffDirectory",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string"
+    },
+    "department": {
+      "type": "string",
+      "enum": [
+        "Executive",
+        "Financial",
+        "Management",
+        "Trucking",
+        "Ranch Ops",
+        "Feedlot",
+        "Maintenance",
+        "External"
+      ]
+    },
+    "entity_assignment": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Which LLC/entity they primarily work for"
+    },
+    "job_title": {
+      "type": "string"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "employment_type": {
+      "type": "string",
+      "enum": [
+        "full_time",
+        "part_time",
+        "contractor",
+        "seasonal"
+      ],
+      "default": "full_time"
+    },
+    "pay_type": {
+      "type": "string",
+      "enum": [
+        "salary",
+        "hourly",
+        "per_load",
+        "per_job",
+        "commission"
+      ]
+    },
+    "pay_rate": {
+      "type": "number"
+    },
+    "emergency_contact": {
+      "type": "string"
+    },
+    "license_plate": {
+      "type": "string",
+      "description": "Truck/vehicle plate if applicable"
+    },
+    "truck_number": {
+      "type": "string"
+    },
+    "cdl_number": {
+      "type": "string",
+      "description": "CDL license if applicable"
+    },
+    "cdl_expiry": {
+      "type": "string",
+      "format": "date"
+    },
+    "certifications": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "on_leave"
+      ],
+      "default": "active"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "full_name",
+    "role",
+    "department"
+  ]
+}

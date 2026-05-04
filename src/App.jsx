@@ -44,6 +44,9 @@ import LoadBoard from './pages/LoadBoard';
 import FinancialIntelligence from './pages/FinancialIntelligence';
 import FieldRepPortal from './pages/FieldRepPortal';
 import AIFeedPlanner from './pages/AIFeedPlanner';
+import StaffPortal from './pages/StaffPortal';
+import Maintenance from './pages/Maintenance';
+import AIOpsAdvisor from './pages/AIOpsAdvisor';
 import CorporateStructure from './pages/CorporateStructure';
 import FeedlotOps from './pages/FeedlotOps';
 import LotPerformance from './pages/LotPerformance';
@@ -130,6 +133,9 @@ const AuthenticatedApp = () => {
         <Route path="/corporate-structure" element={<RoleGate requiredRole={['admin', 'super_admin', 'accountant', 'attorney_cpa', 'manager']}><CorporateStructure /></RoleGate>} />
         <Route path="/feedlot-ops" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager', 'feed_mill', 'feed_truck', 'cowboy']}><FeedlotOps /></RoleGate>} />
         <Route path="/ai-feed-planner" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager']}><AIFeedPlanner /></RoleGate>} />
+        <Route path="/staff-portal" element={<RoleGate requiredRole={['admin', 'super_admin', 'office_manager', 'manager']}><StaffPortal /></RoleGate>} />
+        <Route path="/maintenance" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager', 'office_manager', 'welder', 'maintenance', 'cowboy']}><Maintenance /></RoleGate>} />
+        <Route path="/ai-ops-advisor" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager']}><AIOpsAdvisor /></RoleGate>} />
         <Route path="/lot-performance" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager', 'cowboy', 'field_rep']}><LotPerformance /></RoleGate>} />
         <Route path="/marketplace" element={<Marketplace />} />
         <Route path="/load-board" element={<RoleGate requiredRole={['hauler', 'admin', 'super_admin']}><LoadBoard /></RoleGate>} />

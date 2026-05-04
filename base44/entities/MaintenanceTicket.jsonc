@@ -1,0 +1,102 @@
+{
+  "name": "MaintenanceTicket",
+  "type": "object",
+  "properties": {
+    "ticket_number": {
+      "type": "string"
+    },
+    "entity": {
+      "type": "string",
+      "enum": [
+        "Continental",
+        "Rincon",
+        "Flying3BarB",
+        "GrandSlam",
+        "FullCount",
+        "BeesonBulls"
+      ]
+    },
+    "location": {
+      "type": "string",
+      "description": "Yard, pen, building, equipment"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "fence_repair",
+        "equipment",
+        "welding",
+        "plumbing",
+        "electrical",
+        "pen_maintenance",
+        "vehicle",
+        "building",
+        "other"
+      ]
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ],
+      "default": "medium"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "reported_by": {
+      "type": "string"
+    },
+    "assigned_to": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "in_progress",
+        "on_hold",
+        "completed",
+        "cancelled"
+      ],
+      "default": "open"
+    },
+    "estimated_hours": {
+      "type": "number"
+    },
+    "actual_hours": {
+      "type": "number"
+    },
+    "parts_cost": {
+      "type": "number"
+    },
+    "labor_cost": {
+      "type": "number"
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "category",
+    "priority",
+    "reported_by"
+  ]
+}
