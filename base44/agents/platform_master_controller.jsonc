@@ -118,6 +118,14 @@
     {
       "function_name": "bidirectionalSync",
       "description": "Manage domain synchronization"
+    },
+    {
+      "function_name": "comprehensiveCrossValidation",
+      "description": "Full accuracy validation of all platform data and calculations"
+    },
+    {
+      "function_name": "generateRealTimeAlerts",
+      "description": "Generate alerts for discrepancies and accuracy issues"
     }
   ],
   "app_user_connector_configs": [],

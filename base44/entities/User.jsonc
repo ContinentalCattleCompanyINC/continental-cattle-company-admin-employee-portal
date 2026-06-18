@@ -26,5 +26,6 @@
       ],
       "default": "pending"
     }
-  }
+  },
+  "required": []
 }
