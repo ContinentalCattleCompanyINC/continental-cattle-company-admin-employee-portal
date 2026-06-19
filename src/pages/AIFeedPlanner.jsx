@@ -20,6 +20,7 @@ const YARD_LON = -99.8773;
 const AVG_SPEED_MPH = 50;
 
 import { BREED_TYPES, SEX_OPTIONS, getCattleLabel, isDairy, isBeefDairy, isFullBeef, getUsdaLimit as getUsdaLimitFromConfig, getTargetGrade, getPerformance } from '@/lib/cattleConfig';
+import { freightCostPerHead, TRUCKING_DEFAULTS } from '@/lib/truckingConfig';
 
 const FOCUS = [
   { value: 'roi',      label: 'Max ROI' },
@@ -79,11 +80,15 @@ export default function AIFeedPlanner() {
   const [cog, setCog]                     = useState('');   // $/lb cost of gain
   const [daysOnFeed, setDaysOnFeed]       = useState('');   // DOF override
   const [interestRate, setInterestRate]   = useState('8');  // % annual
-  const [truckingIn, setTruckingIn]       = useState('');   // $/hd freight in
-  const [truckingOut, setTruckingOut]     = useState('');   // $/hd freight out
   const [intakeDate, setIntakeDate]       = useState('');
   const [ageAtEntryDays, setAgeAtEntryDays] = useState('');
   const [additionalContext, setAdditionalContext] = useState('');
+
+  // Trucking inputs — auto-populated from transit miles when calculated
+  const [truckMilesIn, setTruckMilesIn]   = useState('');   // override: loaded miles in
+  const [truckMilesOut, setTruckMilesOut] = useState('200');// override: loaded miles out
+  const [headOnLoad, setHeadOnLoad]       = useState('40'); // head per load
+  const [dieselFeed, setDieselFeed]       = useState('3.60');// $/gal
 
   // Origin / transit
   const [originCity, setOriginCity]       = useState('');   // free-text "City, State"
@@ -181,6 +186,18 @@ export default function AIFeedPlanner() {
     ? parseFloat(shrinkOverride)
     : (transitShrink ?? 3.0);
 
+  // Auto-compute freight from trucking engine
+  // Haul-in miles: use transit miles if calculated, else manual override
+  const haulInMiles  = parseInt(truckMilesIn)  || transitMiles || 300;
+  const haulOutMiles = parseInt(truckMilesOut) || 200;
+  const haulHeads    = parseInt(headOnLoad)    || lot?.head_count || 40;
+  const haulDiesel   = parseFloat(dieselFeed)  || 3.60;
+
+  const freightInResult  = freightCostPerHead({ miles: haulInMiles,  headCount: haulHeads, dieselPrice: haulDiesel });
+  const freightOutResult = freightCostPerHead({ miles: haulOutMiles, headCount: haulHeads, dieselPrice: haulDiesel });
+  const autoFreightIn    = freightInResult.costPerHead;
+  const autoFreightOut   = freightOutResult.costPerHead;
+
   // -------------------------------------------------------------------
   // Central economics engine
   // -------------------------------------------------------------------
@@ -199,8 +216,8 @@ export default function AIFeedPlanner() {
     const healthCost  = healthProtocols.length > 0
       ? healthProtocols.reduce((s, p) => s + (p.cost_per_head || 0), 0)
       : 55;
-    const truckIn  = parseFloat(truckingIn)  || 0;
-    const truckOut = parseFloat(truckingOut) || 0;
+    const truckIn  = autoFreightIn;
+    const truckOut = autoFreightOut;
     const rate     = (parseFloat(interestRate) / 100) || 0.08;
     const interestCost = (ppPerHead + truckIn) * rate * (dof / 365);
     const totalCost = ppPerHead + feedCost + yardageCost + healthCost + truckIn + truckOut + interestCost;
@@ -276,7 +293,7 @@ ECONOMICS INPUTS:
 - Arrival Wt: ${econ.buyWt} lbs/hd | Shipping Wt: ${econ.sellWt} lbs/hd | Gain: ${econ.gainLbs} lbs
 - Purchase Price: $${econ.ppCwt}/cwt ($${econ.ppPerHead.toFixed(0)}/hd)
 - ADG: ${econ.adgVal} lbs/day | COG: $${econ.cogVal}/lb | DOF: ${econ.dof} days
-- Interest: ${interestRate}%/yr | Trucking In: $${econ.truckIn}/hd | Trucking Out: $${econ.truckOut}/hd
+- Interest: ${interestRate}%/yr | Freight In: $${econ.truckIn.toFixed(2)}/hd (${haulInMiles} mi @ $${freightInResult.ratePerMile.toFixed(2)}/mi, driver $${freightInResult.driverPayPerLoad.toFixed(0)}/load) | Freight Out: $${econ.truckOut.toFixed(2)}/hd (${haulOutMiles} mi)
 - Pencil Shrink at Sale: ${econ.shrink}%
 - Total Cost: $${econ.totalCost.toFixed(0)}/hd | Breakeven: $${econ.breakevenCwt.toFixed(2)}/cwt
 
@@ -924,18 +941,6 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
                 value={interestRate} onChange={e => setInterestRate(e.target.value)} />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Trucking In ($/hd)</label>
-              <input type="number" step="0.01" placeholder="0"
-                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
-                value={truckingIn} onChange={e => setTruckingIn(e.target.value)} />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Trucking Out ($/hd)</label>
-              <input type="number" step="0.01" placeholder="0"
-                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
-                value={truckingOut} onChange={e => setTruckingOut(e.target.value)} />
-            </div>
-            <div>
               <label className="text-xs text-muted-foreground mb-1 block">Intake Date</label>
               <input type="date" className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
                 value={intakeDate} onChange={e => setIntakeDate(e.target.value)} />
@@ -945,6 +950,61 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
               <input type="number" placeholder="e.g. 300"
                 className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
                 value={ageAtEntryDays} onChange={e => setAgeAtEntryDays(e.target.value)} />
+            </div>
+          </div>
+        </div>
+
+        {/* Trucking Cost Engine */}
+        <div>
+          <h4 className="font-bebas text-foreground text-base mb-3 flex items-center gap-2">
+            <Truck className="w-4 h-4 text-primary" /> FREIGHT COST ENGINE (Semi + 4-deck pot)
+          </h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">
+                Haul In Miles
+                {transitMiles && <span className="text-primary ml-1">(auto: {transitMiles} mi)</span>}
+              </label>
+              <input type="number" step={10}
+                placeholder={transitMiles ? `Auto: ${transitMiles} mi` : '300'}
+                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                value={truckMilesIn} onChange={e => setTruckMilesIn(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Haul Out Miles</label>
+              <input type="number" step={10}
+                placeholder="200"
+                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                value={truckMilesOut} onChange={e => setTruckMilesOut(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Head / Load</label>
+              <input type="number" step={1} placeholder="40"
+                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                value={headOnLoad} onChange={e => setHeadOnLoad(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Diesel $/gal (route avg)</label>
+              <input type="number" step={0.05} placeholder="3.60"
+                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                value={dieselFeed} onChange={e => setDieselFeed(e.target.value)} />
+            </div>
+          </div>
+          <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-2">
+              <div className="text-muted-foreground">Freight In ({haulInMiles} mi)</div>
+              <div className="font-bebas text-lg text-primary">${autoFreightIn.toFixed(2)}/hd</div>
+              <div className="text-muted-foreground/70">${freightInResult.ratePerMile.toFixed(2)}/mi | Driver ${freightInResult.driverPayPerLoad.toFixed(0)}</div>
+            </div>
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-2">
+              <div className="text-muted-foreground">Freight Out ({haulOutMiles} mi)</div>
+              <div className="font-bebas text-lg text-primary">${autoFreightOut.toFixed(2)}/hd</div>
+              <div className="text-muted-foreground/70">${freightOutResult.ratePerMile.toFixed(2)}/mi | Driver ${freightOutResult.driverPayPerLoad.toFixed(0)}</div>
+            </div>
+            <div className="bg-warning/5 border border-warning/20 rounded-lg p-2 col-span-2">
+              <div className="text-muted-foreground">Total Freight Cost</div>
+              <div className="font-bebas text-xl text-warning">${(autoFreightIn + autoFreightOut).toFixed(2)}/hd</div>
+              <div className="text-muted-foreground/70">Diesel: ${haulDiesel}/gal | {TRUCKING_DEFAULTS.mpgLoaded} MPG | Driver: {(TRUCKING_DEFAULTS.driverPctAvg * 100).toFixed(1)}% of gross | Includes fixed cost amortization</div>
             </div>
           </div>
         </div>

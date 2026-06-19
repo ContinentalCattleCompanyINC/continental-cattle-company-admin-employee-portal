@@ -2,8 +2,9 @@ import { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import SectionHeader from '@/components/SectionHeader';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Truck } from 'lucide-react';
 import { format } from 'date-fns';
+import { freightCostPerHead, TRUCKING_DEFAULTS } from '@/lib/truckingConfig';
 
 export default function PurchaseCalculator() {
   const { data: marketInputs } = useQuery({
@@ -25,9 +26,18 @@ export default function PurchaseCalculator() {
     daysOnFeed: 180,
     deathLossPercent: 1.5,
     interestRate: 6.5,
-    freightCostPerHead: 25,
     shrinkPercent: 3,
   });
+
+  // Trucking inputs — uses real semi + pot model
+  const [truckMilesIn, setTruckMilesIn]   = useState(300);
+  const [truckMilesOut, setTruckMilesOut] = useState(200);
+  const [headOnLoad, setHeadOnLoad]       = useState(40);
+  const [dieselPrice, setDieselPrice]     = useState(3.60);
+
+  const freightIn  = freightCostPerHead({ miles: truckMilesIn,  headCount: headOnLoad, dieselPrice }).costPerHead;
+  const freightOut = freightCostPerHead({ miles: truckMilesOut, headCount: headOnLoad, dieselPrice }).costPerHead;
+  const totalFreightPerHead = freightIn + freightOut;
 
   // Cattle class definitions
   const cattleClasses = [
@@ -65,7 +75,7 @@ export default function PurchaseCalculator() {
   const scenarios = useMemo(() => {
     // Purchase and freight costs
     const purchase_cost = (inputs.purchaseWeight * inputs.purchasePrice) / 100;
-    const freight_cost = inputs.freightCostPerHead;
+    const freight_cost = totalFreightPerHead;
     
     // Feed and yardage
     const total_feed_cost = inputs.costOfGain * (inputs.targetWeight - inputs.purchaseWeight);
@@ -195,49 +205,61 @@ export default function PurchaseCalculator() {
 
               <div className="pt-3 border-t border-border">
                 <h4 className="text-xs font-semibold text-foreground mb-3">ADDITIONAL COSTS</h4>
-                
+
                 <div>
                   <label className="text-xs text-muted-foreground block mb-1">Death Loss (%)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={inputs.deathLossPercent}
+                  <input type="number" step="0.1" value={inputs.deathLossPercent}
                     onChange={(e) => setInputs({...inputs, deathLossPercent: Number(e.target.value)})}
-                    className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground"
-                  />
+                    className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground" />
                 </div>
 
                 <div>
                   <label className="text-xs text-muted-foreground block mb-1">Interest Rate (%/year)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={inputs.interestRate}
+                  <input type="number" step="0.1" value={inputs.interestRate}
                     onChange={(e) => setInputs({...inputs, interestRate: Number(e.target.value)})}
-                    className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs text-muted-foreground block mb-1">Freight ($/head)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={inputs.freightCostPerHead}
-                    onChange={(e) => setInputs({...inputs, freightCostPerHead: Number(e.target.value)})}
-                    className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground"
-                  />
+                    className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground" />
                 </div>
 
                 <div>
                   <label className="text-xs text-muted-foreground block mb-1">Shrink on Sale (%)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={inputs.shrinkPercent}
+                  <input type="number" step="0.1" value={inputs.shrinkPercent}
                     onChange={(e) => setInputs({...inputs, shrinkPercent: Number(e.target.value)})}
-                    className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground"
-                  />
+                    className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground" />
+                </div>
+              </div>
+
+              {/* Trucking Calculator */}
+              <div className="pt-3 border-t border-border">
+                <h4 className="text-xs font-semibold text-foreground mb-3 flex items-center gap-1.5">
+                  <Truck className="w-3.5 h-3.5 text-primary" /> TRUCKING (Semi + 4-deck pot)
+                </h4>
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">Haul In — Miles</label>
+                    <input type="number" step={10} value={truckMilesIn} onChange={e => setTruckMilesIn(+e.target.value || 0)}
+                      className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">Haul Out — Miles</label>
+                    <input type="number" step={10} value={truckMilesOut} onChange={e => setTruckMilesOut(+e.target.value || 0)}
+                      className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">Head / Load</label>
+                    <input type="number" step={1} value={headOnLoad} onChange={e => setHeadOnLoad(+e.target.value || 1)}
+                      className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">Diesel avg $/gal</label>
+                    <input type="number" step={0.05} value={dieselPrice} onChange={e => setDieselPrice(+e.target.value || 3.60)}
+                      className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground" />
+                  </div>
+                  <div className="bg-primary/5 border border-primary/20 rounded p-2 text-xs space-y-1">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Freight In</span><span className="text-foreground">${freightIn.toFixed(2)}/hd</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Freight Out</span><span className="text-foreground">${freightOut.toFixed(2)}/hd</span></div>
+                    <div className="flex justify-between border-t border-primary/20 pt-1"><span className="text-primary font-medium">Total Freight</span><span className="text-primary font-bold">${totalFreightPerHead.toFixed(2)}/hd</span></div>
+                    <div className="text-muted-foreground/70 pt-0.5">Rate: ${freightCostPerHead({miles:truckMilesIn, headCount:headOnLoad, dieselPrice}).ratePerMile.toFixed(2)}/mi | Driver: ${freightCostPerHead({miles:truckMilesIn, headCount:headOnLoad, dieselPrice}).driverPayPerLoad.toFixed(0)}/load in</div>
+                  </div>
                 </div>
               </div>
 
@@ -292,8 +314,12 @@ export default function PurchaseCalculator() {
                     <span className="text-foreground">${bestROI.purchaseCost.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Freight</span>
-                    <span className="text-foreground">${bestROI.freightCost.toFixed(2)}</span>
+                    <span>Freight In ({truckMilesIn} mi)</span>
+                    <span className="text-foreground">${freightIn.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Freight Out ({truckMilesOut} mi)</span>
+                    <span className="text-foreground">${freightOut.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Feed</span>

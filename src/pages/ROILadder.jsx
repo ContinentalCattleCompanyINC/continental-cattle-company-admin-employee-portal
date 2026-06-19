@@ -3,16 +3,18 @@ import SectionHeader from '@/components/SectionHeader';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { getAllCombos } from '@/lib/cattleConfig';
+import { quickFreightPerHead } from '@/lib/truckingConfig';
 
 const CLASSES = getAllCombos();
 
-function calcLadder(cls, lcFutures, basis, cog, yardage, dlRate, interestRate, startWeight) {
+function calcLadder(cls, lcFutures, basis, cog, yardage, dlRate, interestRate, startWeight, freightPerHead = 0) {
   const steps = [];
   const lcEffective = lcFutures + basis + cls.gridAdj;
   let weight = startWeight;
   let cumulativeCost = weight * (lcFutures * 0.75 / 100); // approximate purchase cost
 
   const maxWeight = cls.maxWeight || 1400;
+  let firstStep = true;
 
   while (weight < maxWeight) {
     const endWeight = Math.min(weight + 150, maxWeight);
@@ -25,7 +27,9 @@ function calcLadder(cls, lcFutures, basis, cog, yardage, dlRate, interestRate, s
     const yardageCost = days * yardage;
     const interestCost = cumulativeCost * (interestRate / 365) * days;
     const dlCost = cumulativeCost * dlRate;
-    const totalCost = feedCost + yardageCost + interestCost + dlCost;
+    // Freight in on first step, freight out on last step (approximated as last)
+    const freightCostStep = firstStep ? freightPerHead : 0;
+    const totalCost = feedCost + yardageCost + interestCost + dlCost + freightCostStep;
     const profit = gainValue - totalCost;
     const roi = cumulativeCost > 0 ? (profit / totalCost) * 100 : 0;
     const profitPerDay = days > 0 ? profit / days : 0;
@@ -40,6 +44,7 @@ function calcLadder(cls, lcFutures, basis, cog, yardage, dlRate, interestRate, s
 
     cumulativeCost += totalCost;
     weight = endWeight;
+    firstStep = false;
   }
   return steps;
 }
@@ -53,12 +58,20 @@ export default function ROILadder() {
   const [dlRate, setDlRate] = useState(0.005);
   const [interestRate, setInterestRate] = useState(0.10);
   const [startWeight, setStartWeight] = useState(95);
+  const [freightMilesIn, setFreightMilesIn]   = useState(300);
+  const [freightMilesOut, setFreightMilesOut] = useState(200);
+  const [headOnLoad, setHeadOnLoad]           = useState(40);
+  const [dieselLadder, setDieselLadder]       = useState(3.60);
+
+  const freightInPerHead  = quickFreightPerHead(freightMilesIn,  headOnLoad, dieselLadder);
+  const freightOutPerHead = quickFreightPerHead(freightMilesOut, headOnLoad, dieselLadder);
+  const totalFreightPerHead = freightInPerHead + freightOutPerHead;
 
   const cls = CLASSES.find(c => c.value === selectedClass);
 
   const ladder = useMemo(() =>
-    calcLadder(cls, lcFutures, basis, cog, yardage, dlRate, interestRate, startWeight),
-    [cls, lcFutures, basis, cog, yardage, dlRate, interestRate, startWeight]
+    calcLadder(cls, lcFutures, basis, cog, yardage, dlRate, interestRate, startWeight, totalFreightPerHead),
+    [cls, lcFutures, basis, cog, yardage, dlRate, interestRate, startWeight, totalFreightPerHead]
   );
 
   const bestStep = ladder.reduce((best, s) => parseFloat(s.roi) > parseFloat(best.roi) ? s : best, ladder[0] || {});
@@ -104,10 +117,42 @@ export default function ROILadder() {
           ))}
         </div>
 
-        <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
+        {/* Freight row */}
+        <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Haul In Miles</label>
+            <input type="number" step={25} value={freightMilesIn} onChange={e => setFreightMilesIn(+e.target.value || 0)}
+              className="w-full bg-secondary border border-border rounded px-3 py-2 text-foreground text-sm" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Haul Out Miles</label>
+            <input type="number" step={25} value={freightMilesOut} onChange={e => setFreightMilesOut(+e.target.value || 0)}
+              className="w-full bg-secondary border border-border rounded px-3 py-2 text-foreground text-sm" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Head / Load</label>
+            <input type="number" step={1} value={headOnLoad} onChange={e => setHeadOnLoad(+e.target.value || 1)}
+              className="w-full bg-secondary border border-border rounded px-3 py-2 text-foreground text-sm" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Diesel $/gal</label>
+            <input type="number" step={0.05} value={dieselLadder} onChange={e => setDieselLadder(+e.target.value || 3.60)}
+              className="w-full bg-secondary border border-border rounded px-3 py-2 text-foreground text-sm" />
+          </div>
+          <div className="flex items-end">
+            <div className="bg-primary/10 border border-primary/20 rounded px-3 py-2 text-xs w-full">
+              <div className="text-muted-foreground">Freight in+out</div>
+              <div className="font-bebas text-lg text-primary">${totalFreightPerHead.toFixed(2)}/hd</div>
+              <div className="text-muted-foreground/70">${freightInPerHead.toFixed(2)} in + ${freightOutPerHead.toFixed(2)} out</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
           <span>Dressing: <span className="text-primary">{(cls.dressingPct * 100).toFixed(0)}%</span></span>
           <span>Grid Adj: <span className={cls.gridAdj >= 0 ? 'text-success' : 'text-danger'}>{cls.gridAdj >= 0 ? '+' : ''}{cls.gridAdj}</span></span>
           <span>Effective LC: <span className="text-primary">${(lcFutures + basis + cls.gridAdj).toFixed(2)}/cwt</span></span>
+          <span>Freight: <span className="text-warning">${totalFreightPerHead.toFixed(2)}/hd included</span></span>
           {bestStep && <span>Best ROI Step: <span className="text-success">{bestStep.startWeight}→{bestStep.endWeight} lb ({bestStep.roi}%)</span></span>}
         </div>
       </div>
