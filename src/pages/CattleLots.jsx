@@ -6,6 +6,7 @@ import { Plus, X, Beef, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import PullToRefresh from '@/components/PullToRefresh';
+import { BREED_TYPES, SEX_OPTIONS, getCattleLabel } from '@/lib/cattleConfig';
 import {
   Select,
   SelectContent,
@@ -14,23 +15,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const CLASSES = [
-  { value: 'holstein_steer', label: 'Holstein Steer' },
-  { value: 'holstein_heifer', label: 'Holstein Heifer' },
-  { value: 'beef_dairy_steer', label: 'Beef × Dairy Steer' },
-  { value: 'beef_dairy_heifer', label: 'Beef × Dairy Heifer' },
-  { value: 'feeder_cow', label: 'Feeder Cow' },
-  { value: 'feeder_bull', label: 'Feeder Bull' },
-  { value: 'packer_cow', label: 'Packer Cow' },
-  { value: 'packer_bull', label: 'Packer Bull' },
-  { value: 'day_old_calf', label: 'Day-Old Calf' },
-];
-
 const ENTITIES = ['Continental', 'Rincon', 'Flying3BarB', 'GrandSlam', 'FullCount', 'BeesonBulls'];
 const STAGES = ['calf_ranch', 'grower', 'feedyard', 'finish', 'rail'];
 
 const BLANK_FORM = {
-  lot_id: '', entity: 'Continental', cattle_class: 'beef_dairy_steer',
+  lot_id: '', entity: 'Continental', breed_type: 'beef_x_dairy_holstein', sex: 'steer',
   head_count: 0, purchase_weight: 0, current_weight: 0, target_weight: 0,
   purchase_price: 0, purchase_date: format(new Date(), 'yyyy-MM-dd'),
   yard: '', pen: '', cog: 0.92, yardage: 0.45, status: 'active',
@@ -157,13 +146,24 @@ export default function CattleLots() {
               </div>
             ))}
             <div>
-              <label className="text-xs text-muted-foreground block mb-1">Cattle Class</label>
-              <Select value={form.cattle_class} onValueChange={(value) => f('cattle_class', value)}>
+              <label className="text-xs text-muted-foreground block mb-1">Breed Type</label>
+              <Select value={form.breed_type} onValueChange={(value) => f('breed_type', value)}>
                 <SelectTrigger className="text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {CLASSES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                  {BREED_TYPES.map(b => <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Sex</label>
+              <Select value={form.sex} onValueChange={(value) => f('sex', value)}>
+                <SelectTrigger className="text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SEX_OPTIONS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -205,7 +205,7 @@ export default function CattleLots() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-secondary/80 border-b border-border">
-                {['Lot ID', 'Entity', 'Class', 'Head', 'Buy Wt', 'Cur Wt', 'Buy Price', 'Date', 'Stage', 'Status', 'Value', 'Actions'].map(h => (
+                {['Lot ID', 'Entity', 'Breed / Sex', 'Head', 'Buy Wt', 'Cur Wt', 'Buy Price', 'Date', 'Stage', 'Status', 'Value', 'Actions'].map(h => (
                   <th key={h} className="text-left text-xs text-muted-foreground font-medium px-3 py-3 whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -220,7 +220,7 @@ export default function CattleLots() {
                   <tr key={lot.id} className="border-b border-border/50 hover:bg-secondary/30">
                     <td className="px-3 py-2.5 font-medium text-foreground">{lot.lot_id || lot.id.slice(-6)}</td>
                     <td className="px-3 py-2.5 text-primary text-xs">{lot.entity}</td>
-                    <td className="px-3 py-2.5 text-foreground text-xs">{CLASSES.find(c => c.value === lot.cattle_class)?.label || lot.cattle_class}</td>
+                    <td className="px-3 py-2.5 text-foreground text-xs">{getCattleLabel(lot.breed_type, lot.sex) || lot.cattle_class || '—'}</td>
                     <td className="px-3 py-2.5 text-foreground">{lot.head_count}</td>
                     <td className="px-3 py-2.5 text-muted-foreground">{lot.purchase_weight} lb</td>
                     <td className="px-3 py-2.5 text-foreground">{lot.current_weight || '—'}</td>

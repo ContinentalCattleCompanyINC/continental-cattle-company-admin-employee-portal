@@ -6,6 +6,7 @@ import { Camera, Upload, Plus, CheckCircle, Clock, XCircle, MapPin, DollarSign, 
 import SectionHeader from '@/components/SectionHeader';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { BREED_TYPES, SEX_OPTIONS } from '@/lib/cattleConfig';
 
 const SUBMISSION_TYPES = [
   { value: 'lot_listing', label: 'New Lot Listing' },
@@ -34,7 +35,8 @@ export default function FieldRepPortal() {
     entity: 'Continental',
     title: '',
     description: '',
-    cattle_class: '',
+    breed_type: '',
+    sex: '',
     head_count: '',
     location: '',
     weight_estimate: '',
@@ -57,7 +59,7 @@ export default function FieldRepPortal() {
       qc.invalidateQueries({ queryKey: ['fieldSubmissions'] });
       toast.success('Submission sent for approval');
       setShowForm(false);
-      setForm({ submission_type: 'lot_listing', entity: 'Continental', title: '', description: '', cattle_class: '', head_count: '', location: '', weight_estimate: '', price_ask: '', health_notes: '', photos: [] });
+      setForm({ submission_type: 'lot_listing', entity: 'Continental', title: '', description: '', breed_type: '', sex: '', head_count: '', location: '', weight_estimate: '', price_ask: '', health_notes: '', photos: [] });
     },
   });
 
@@ -138,10 +140,20 @@ export default function FieldRepPortal() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Cattle Class</label>
-                <input className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
-                  placeholder="Holstein Steers..." value={form.cattle_class}
-                  onChange={e => setForm(f => ({ ...f, cattle_class: e.target.value }))} />
+                <label className="text-xs text-muted-foreground mb-1 block">Breed Type</label>
+                <select className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                  value={form.breed_type} onChange={e => setForm(f => ({ ...f, breed_type: e.target.value }))}>
+                  <option value="">Select breed...</option>
+                  {BREED_TYPES.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Sex</label>
+                <select className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                  value={form.sex} onChange={e => setForm(f => ({ ...f, sex: e.target.value }))}>
+                  <option value="">Select sex...</option>
+                  {SEX_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Head Count</label>

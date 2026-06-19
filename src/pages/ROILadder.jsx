@@ -2,17 +2,9 @@ import { useState, useMemo } from 'react';
 import SectionHeader from '@/components/SectionHeader';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { getAllCombos } from '@/lib/cattleConfig';
 
-const CLASSES = [
-  { value: 'holstein_steer', label: 'Holstein Steer', dressingPct: 0.61, gridAdj: 0 },
-  { value: 'holstein_heifer', label: 'Holstein Heifer', dressingPct: 0.60, gridAdj: -2 },
-  { value: 'beef_dairy_steer', label: 'Beef × Dairy Steer', dressingPct: 0.64, gridAdj: 8 },
-  { value: 'beef_dairy_heifer', label: 'Beef × Dairy Heifer', dressingPct: 0.63, gridAdj: 5 },
-  { value: 'feeder_cow', label: 'Feeder Cow', dressingPct: 0.57, gridAdj: -5 },
-  { value: 'feeder_bull', label: 'Feeder Bull', dressingPct: 0.60, gridAdj: -3 },
-  { value: 'packer_cow', label: 'Packer Cow', dressingPct: 0.56, gridAdj: -8 },
-  { value: 'packer_bull', label: 'Packer Bull', dressingPct: 0.59, gridAdj: -4 },
-];
+const CLASSES = getAllCombos();
 
 function calcLadder(cls, lcFutures, basis, cog, yardage, dlRate, interestRate, startWeight) {
   const steps = [];
@@ -20,8 +12,7 @@ function calcLadder(cls, lcFutures, basis, cog, yardage, dlRate, interestRate, s
   let weight = startWeight;
   let cumulativeCost = weight * (lcFutures * 0.75 / 100); // approximate purchase cost
 
-  const maxWeight = ['feeder_cow', 'packer_cow'].includes(cls.value) ? 1800 :
-    ['feeder_bull', 'packer_bull'].includes(cls.value) ? 2200 : 1600;
+  const maxWeight = cls.maxWeight || 1400;
 
   while (weight < maxWeight) {
     const endWeight = Math.min(weight + 150, maxWeight);
@@ -54,7 +45,7 @@ function calcLadder(cls, lcFutures, basis, cog, yardage, dlRate, interestRate, s
 }
 
 export default function ROILadder() {
-  const [selectedClass, setSelectedClass] = useState('beef_dairy_steer');
+  const [selectedClass, setSelectedClass] = useState(CLASSES[0]?.value || '');
   const [lcFutures, setLcFutures] = useState(241.66);
   const [basis, setBasis] = useState(-2.5);
   const [cog, setCog] = useState(0.92);
@@ -76,8 +67,8 @@ export default function ROILadder() {
     <div className="p-6 space-y-6">
       <SectionHeader
         title="ROI LADDER"
-        subtitle="150-lb increment valuation for all cattle classes — Section 33"
-        badge="All Classes"
+        subtitle="150-lb increment valuation across all breed types and sex classes"
+        badge="All Breeds"
       />
 
       {/* Controls */}
@@ -85,7 +76,7 @@ export default function ROILadder() {
         <h2 className="font-bebas text-xl text-foreground mb-4">INPUTS</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
           <div className="lg:col-span-2">
-            <label className="text-xs text-muted-foreground block mb-1">Cattle Class</label>
+            <label className="text-xs text-muted-foreground block mb-1">Breed × Sex</label>
             <select
               value={selectedClass}
               onChange={e => setSelectedClass(e.target.value)}

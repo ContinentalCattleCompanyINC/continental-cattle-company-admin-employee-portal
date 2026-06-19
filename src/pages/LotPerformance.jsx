@@ -6,6 +6,7 @@ import { Plus, AlertCircle, Activity, Camera, ChevronDown, ChevronRight, Trendin
 import SectionHeader from '@/components/SectionHeader';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { getCattleLabel } from '@/lib/cattleConfig';
 
 const EVENT_TYPES = [
   { value: 'pull', label: 'Pull', color: 'text-danger' },
@@ -139,7 +140,7 @@ export default function LotPerformance() {
             onClick={() => setSelectedLot(lot.id)}
             className={`text-left p-3 rounded-lg border transition-colors ${selectedLot === lot.id ? 'border-primary bg-primary/10' : 'border-border bg-card hover:bg-secondary/30'}`}>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground truncate">{lot.lot_id || lot.cattle_class}</span>
+              <span className="text-sm font-medium text-foreground truncate">{lot.lot_id || getCattleLabel(lot.breed_type, lot.sex) || lot.cattle_class}</span>
               {(Number(lot.morbidity) > 10 || Number(lot.mortality) > 2) && <AlertCircle className="w-3.5 h-3.5 text-danger flex-shrink-0" />}
             </div>
             <div className="text-xs text-muted-foreground">{lot.head_count} hd · {lot.yard || '—'} · Pen {lot.pen || '—'}</div>
@@ -163,7 +164,7 @@ export default function LotPerformance() {
                 <select className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
                   value={selectedLot || ''} onChange={e => setSelectedLot(e.target.value)}>
                   <option value="">Select lot...</option>
-                  {lots.map(l => <option key={l.id} value={l.id}>{l.lot_id || l.cattle_class} — {l.yard}</option>)}
+                  {lots.map(l => <option key={l.id} value={l.id}>{l.lot_id || getCattleLabel(l.breed_type, l.sex) || l.cattle_class} — {l.yard}</option>)}
                 </select>
               </div>
               <div>
@@ -263,7 +264,7 @@ export default function LotPerformance() {
       {/* Events Feed */}
       <div className="space-y-3">
         <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-          {selectedLotData ? `Events — ${selectedLotData.lot_id || selectedLotData.cattle_class}` : 'All Recent Events'} ({events.length})
+          {selectedLotData ? `Events — ${selectedLotData.lot_id || getCattleLabel(selectedLotData.breed_type, selectedLotData.sex) || selectedLotData.cattle_class}` : 'All Recent Events'} ({events.length})
         </h3>
         {events.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground bg-card border border-border rounded-xl">

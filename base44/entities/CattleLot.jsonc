@@ -17,19 +17,30 @@
       ],
       "default": "Continental"
     },
-    "cattle_class": {
+    "breed_type": {
       "type": "string",
       "enum": [
-        "holstein_steer",
-        "holstein_heifer",
-        "beef_dairy_steer",
-        "beef_dairy_heifer",
-        "feeder_cow",
-        "feeder_bull",
-        "packer_cow",
-        "packer_bull",
-        "day_old_calf"
-      ]
+        "english_beef",
+        "crossbred_beef",
+        "beef_x_dairy_holstein",
+        "beef_x_dairy_jersey",
+        "dairy_holstein",
+        "dairy_jersey"
+      ],
+      "description": "Breed classification"
+    },
+    "sex": {
+      "type": "string",
+      "enum": [
+        "steer",
+        "heifer",
+        "bull"
+      ],
+      "description": "Sex of the cattle"
+    },
+    "cattle_class": {
+      "type": "string",
+      "description": "Legacy cattle class field \u2014 use breed_type + sex instead"
     },
     "head_count": {
       "type": "number"
@@ -93,7 +104,8 @@
     }
   },
   "required": [
-    "cattle_class",
+    "breed_type",
+    "sex",
     "head_count",
     "purchase_weight",
     "purchase_price",

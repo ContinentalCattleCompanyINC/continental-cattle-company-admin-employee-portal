@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 import SectionHeader from '@/components/SectionHeader';
-import { Sparkles, Wheat, Syringe, RefreshCw, ChevronDown, ChevronRight, TrendingUp, Save, FolderOpen, Clock, Plus, X, CloudSun, MapPin, Truck } from 'lucide-react';
+import { Sparkles, Wheat, Syringe, RefreshCw, ChevronDown, ChevronRight, TrendingUp, Save, FolderOpen, Clock, Plus, X, CloudSun, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -19,20 +19,7 @@ const YARD_LAT = 36.2687;
 const YARD_LON = -99.8773;
 const AVG_SPEED_MPH = 50;
 
-// USDA BQA age limits by grade
-const USDA_AGE_LIMITS = {
-  select:   { days: 912,  months: 30, label: 'Select (≤30 mo)',   grade: 'Select'   },
-  choice:   { days: 1278, months: 42, label: 'Choice (≤42 mo)',   grade: 'Choice'   },
-  prime:    { days: 1278, months: 42, label: 'Prime (≤42 mo)',    grade: 'Prime'    },
-  standard: { days: 1278, months: 42, label: 'Standard (≤42 mo)', grade: 'Standard' },
-};
-
-const getUsdaLimit = (cattleClass, focusVal) => {
-  const isHolstein = cattleClass?.includes('holstein') || cattleClass?.includes('dairy');
-  if (isHolstein) return USDA_AGE_LIMITS.select;
-  if (focusVal === 'grade') return USDA_AGE_LIMITS.prime;
-  return USDA_AGE_LIMITS.choice;
-};
+import { BREED_TYPES, SEX_OPTIONS, getCattleLabel, isDairy, isBeefDairy, isFullBeef, getUsdaLimit as getUsdaLimitFromConfig, getTargetGrade, getPerformance } from '@/lib/cattleConfig';
 
 const FOCUS = [
   { value: 'roi',      label: 'Max ROI' },
@@ -228,7 +215,7 @@ export default function AIFeedPlanner() {
     const breakevenCwt = totalCost / netSellWt * 100;
 
     // USDA / age limit calcs
-    const usdaLimit = getUsdaLimit(lot?.cattle_class, focus);
+    const usdaLimit = getUsdaLimitFromConfig(lot?.breed_type, focus);
     const ageEntry  = parseInt(ageAtEntryDays) || null;
     const intake    = intakeDate || lot?.purchase_date || '';
     let expectedOutDate = null;
@@ -248,10 +235,9 @@ export default function AIFeedPlanner() {
       breakevenAtLimit = netWtLimit > 0 ? parseFloat((totalLimit / netWtLimit * 100).toFixed(2)) : null;
     }
 
-    const isHolstein  = lot?.cattle_class?.includes('holstein') || lot?.cattle_class?.includes('dairy');
-    const targetGrade = isHolstein ? 'Select / Low Choice' : 'Choice / Prime';
-    const corn        = market?.corn_price || 4.50;
-    const headCount   = lot?.head_count || null;
+    const targetGrade = getTargetGrade(lot?.breed_type);
+    const corn = market?.corn_price || 4.50;
+    const headCount = lot?.head_count || null;
 
     return {
       buyWt, sellWt, gainLbs, dof, adgVal, cogVal, ppCwt, ppPerHead,
@@ -259,7 +245,7 @@ export default function AIFeedPlanner() {
       totalCost, lc, fc, shrink: effectiveShrink, netSellWt, grossRev,
       profitPerHead, roi, breakevenCwt, usdaLimit, ageEntry,
       expectedOutDate, maxDofToLimit, breakevenAtLimit, weightAtLimit,
-      targetGrade, isHolstein, headCount, corn, yardage,
+      targetGrade, headCount, corn, yardage,
     };
   };
 
@@ -269,7 +255,7 @@ export default function AIFeedPlanner() {
   const buildPrompt = (econ) => {
     const l   = lot;
     const mkt = market;
-    const usdaLimit = getUsdaLimit(l?.cattle_class, focus);
+    const usdaLimit = getUsdaLimitFromConfig(l?.breed_type, focus);
     const transitInfo = transitMiles
       ? `Origin: ${originCity} → ${YARD_ADDRESS} | ~${transitMiles} mi road | ~${transitHours?.toFixed(1)} hrs @ ${AVG_SPEED_MPH} mph avg | Est. shrink: ${econ.shrink}%`
       : originCity ? `Origin: ${originCity} (distance not yet calculated)` : 'Origin not specified';
@@ -278,7 +264,9 @@ export default function AIFeedPlanner() {
 
 USDA BQA: Select ≤30 mo (912 days) | Choice/Prime ≤42 mo (1,278 days) | Target: ${usdaLimit.grade}${ageAtEntryDays ? ` | Age at entry: ${ageAtEntryDays} days — ${usdaLimit.days - parseInt(ageAtEntryDays)} days max DOF remaining` : ''}
 
-CATTLE LOT: ${l ? `${l.cattle_class} | ${l.head_count} hd | Stage: ${l.stage} | Yard: ${l.yard}, Pen: ${l.pen}` : 'No specific lot'}
+CATTLE LOT: ${l ? `${getCattleLabel(l?.breed_type, l?.sex)} | ${l.head_count} hd | Stage: ${l.stage} | Yard: ${l.yard}, Pen: ${l.pen}` : 'No specific lot'}
+BREED: ${l?.breed_type ? `${BREED_TYPES.find(b => b.value === l.breed_type)?.label || l.breed_type}` : 'Not specified'} | SEX: ${l?.sex ? `${SEX_OPTIONS.find(s => s.value === l.sex)?.label || l.sex}` : 'Not specified'}
+${l?.breed_type ? `Dairy Influence: ${isDairy(l.breed_type) ? 'Full dairy (100%)' : isBeefDairy(l.breed_type) ? 'Beef × Dairy cross' : 'Full beef'} | Dressing: ${(getPerformance(l.breed_type, l.sex || 'steer').dressingPct * 100).toFixed(1)}% | Grid Adj: ${getPerformance(l.breed_type, l.sex || 'steer').gridAdj >= 0 ? '+' : ''}${getPerformance(l.breed_type, l.sex || 'steer').gridAdj}` : ''}
 
 TRANSIT INFO (critical for arrival protocol & expected shrink):
 ${transitInfo}
@@ -320,7 +308,7 @@ ${planType !== 'vaccination' ? `## 🌾 RATION PROGRAM\n- Phase-by-phase: DMI, i
       feedCost, yardageCost, healthCost, truckIn, truckOut, interestCost,
       totalCost, lc, fc, shrink, netSellWt, grossRev, profitPerHead, roi,
       breakevenCwt, usdaLimit, ageEntry, expectedOutDate, maxDofToLimit,
-      breakevenAtLimit, weightAtLimit, targetGrade, isHolstein, headCount, corn, yardage,
+      breakevenAtLimit, weightAtLimit, targetGrade, headCount, corn, yardage,
     } = econ;
 
     const ageAtSale    = ageEntry !== null ? ageEntry + dof : null;
@@ -350,7 +338,7 @@ ${planType !== 'vaccination' ? `## 🌾 RATION PROGRAM\n- Phase-by-phase: DMI, i
     const receivingDays = transitMiles > 600 ? 28 : transitMiles > 250 ? 21 : 14;
 
     const rationProgram = `DATA-DRIVEN RATION PLAN
-${l ? `Lot: ${l.lot_id || l.cattle_class} | ${headCount} hd | ${buyWt} lbs → ${sellWt} lbs | ADG ${adgVal} lbs/day | ${dof} DOF` : 'General program'}
+${l ? `Lot: ${l.lot_id || getCattleLabel(l.breed_type, l.sex)} | ${headCount} hd | ${buyWt} lbs → ${sellWt} lbs | ADG ${adgVal} lbs/day | ${dof} DOF` : 'General program'}
 
 ${transitBlock}
 ${weatherNote}
@@ -375,7 +363,7 @@ DMI: ${Math.round(dmiLbs * 1.1)} lbs/hd/day | TDN: 82–86% | CP: 11–12%
 TOTAL FEED COST: $${feedCost.toFixed(0)}/hd over ${dof} days @ $${cogVal}/lb COG ($${(feedCost / dof).toFixed(2)}/hd/day avg)`;
 
     const vaccinationSchedule = `DATA-DRIVEN HEALTH PROTOCOL
-${l ? `${l.lot_id || l.cattle_class} | ${l.cattle_class}` : 'General BQA program'}
+${l ? `${l.lot_id || getCattleLabel(l.breed_type, l.sex)} | ${getCattleLabel(l.breed_type, l.sex)}` : 'General BQA program'}
 
 ${transitBlock}
 
@@ -401,7 +389,7 @@ ${transitMiles > 600 ? '• Day 0–3: Electrolytes in water, hay only, monitor 
 HEALTH COST: $${healthCost.toFixed(0)}/hd`;
 
     const econProjection = `ECONOMIC PROJECTION
-${l ? `${l.lot_id || l.cattle_class} | ${headCount} hd | Focus: ${FOCUS.find(f => f.value === focus)?.label}` : 'General estimate'}
+${l ? `${l.lot_id || getCattleLabel(l.breed_type, l.sex)} | ${headCount} hd | Focus: ${FOCUS.find(f => f.value === focus)?.label}` : 'General estimate'}
 
 INPUTS:
 • Intake date:        ${intakeDate || l?.purchase_date || 'Not set'}
@@ -486,7 +474,7 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
       vaccination_schedule: vaccinationSchedule,
       economic_projection: econProjection,
       ai_recommendations: recommendations,
-      summary: `${l ? `${l.lot_id || l.cattle_class} (${headCount} hd)` : 'General'}: $${profitPerHead.toFixed(0)}/hd profit | ${roi.toFixed(1)}% ROI | ${dof} DOF | Buy $${ppCwt}/cwt → Sell ${sellWt} lbs @ LC $${lc}/cwt | BE $${breakevenCwt.toFixed(2)}/cwt${transitMiles ? ` | Origin: ${originCity} ~${transitMiles} mi` : ''}.`,
+      summary: `${l ? `${l.lot_id || getCattleLabel(l.breed_type, l.sex)} (${headCount} hd)` : 'General'}: $${profitPerHead.toFixed(0)}/hd profit | ${roi.toFixed(1)}% ROI | ${dof} DOF | Buy $${ppCwt}/cwt → Sell ${sellWt} lbs @ LC $${lc}/cwt | BE $${breakevenCwt.toFixed(2)}/cwt${transitMiles ? ` | Origin: ${originCity} ~${transitMiles} mi` : ''}.`,
       estimated_profit_per_head: Math.round(profitPerHead),
       estimated_roi_percent: parseFloat(roi.toFixed(1)),
       estimated_cost_per_head: Math.round(totalCost),
@@ -507,7 +495,7 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
     const l = lots.find(lo => lo.id === selectedLot);
     const record = {
       lot_id: selectedLot || '',
-      lot_label: l ? `${l.lot_id || l.cattle_class} — ${l.head_count} hd @ ${l.current_weight || l.purchase_weight} lbs` : 'General Program',
+      lot_label: l ? `${l.lot_id || getCattleLabel(l.breed_type, l.sex)} — ${l.head_count} hd @ ${l.current_weight || l.purchase_weight} lbs` : 'General Program',
       plan_type: planType,
       focus,
       intake_date: intakeDate || l?.purchase_date || undefined,
@@ -784,7 +772,7 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
               <option value="">General best-practice program (no specific lot)</option>
               {lots.map(l => (
                 <option key={l.id} value={l.id}>
-                  {l.lot_id || l.cattle_class} — {l.head_count} hd @ {l.current_weight || l.purchase_weight} lbs — {l.yard} Pen {l.pen}
+                  {l.lot_id || getCattleLabel(l.breed_type, l.sex)} — {l.head_count} hd @ {l.current_weight || l.purchase_weight} lbs — {l.yard} Pen {l.pen}
                 </option>
               ))}
             </select>
@@ -973,7 +961,7 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
         {lot && (
           <div className="flex flex-wrap gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg text-xs">
             <span className="text-primary font-medium">Lot Loaded:</span>
-            <span className="text-muted-foreground">{lot.cattle_class} | {lot.head_count} hd | {lot.current_weight || lot.purchase_weight} lbs | Stage: {lot.stage}</span>
+            <span className="text-muted-foreground">{getCattleLabel(lot.breed_type, lot.sex)} | {lot.head_count} hd | {lot.current_weight || lot.purchase_weight} lbs | Stage: {lot.stage}</span>
             {market && <span className="text-success">+ LC ${market.lc_futures} | FC ${market.gf_futures}</span>}
             {feedProtocols.length > 0 && <span className="text-success">+ {feedProtocols.length} feed commodities</span>}
             {healthProtocols.length > 0 && <span className="text-success">+ {healthProtocols.length} health protocols</span>}

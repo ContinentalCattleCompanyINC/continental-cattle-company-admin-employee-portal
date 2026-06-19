@@ -38,8 +38,30 @@
     "description": {
       "type": "string"
     },
+    "breed_type": {
+      "type": "string",
+      "enum": [
+        "english_beef",
+        "crossbred_beef",
+        "beef_x_dairy_holstein",
+        "beef_x_dairy_jersey",
+        "dairy_holstein",
+        "dairy_jersey"
+      ],
+      "description": "Breed classification"
+    },
+    "sex": {
+      "type": "string",
+      "enum": [
+        "steer",
+        "heifer",
+        "bull"
+      ],
+      "description": "Sex of the cattle"
+    },
     "cattle_class": {
-      "type": "string"
+      "type": "string",
+      "description": "Legacy \u2014 use breed_type + sex"
     },
     "head_count": {
       "type": "number"
