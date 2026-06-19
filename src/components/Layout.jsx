@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { isFullAccess, getSectionAdmin, getAllowedPagePaths, getAccessLabel } from '@/lib/accessControl';
 import MobileHeader from './MobileHeader';
 import MobileTabBar from './MobileTabBar';
+import OfflineIndicator from './OfflineIndicator';
 import {
   LayoutDashboard, TrendingUp, Calculator, BarChart3,
   Beef, Truck, Globe, BookOpen, Settings, ShieldAlert, Activity, Menu, X, DollarSign,
@@ -167,6 +168,9 @@ export default function Layout() {
 
       {/* Mobile Tab Bar - Shown only on mobile */}
       <MobileTabBar navItems={navItems} location={location} />
+
+      {/* Offline Status Indicator */}
+      <OfflineIndicator />
     </div>
   );
 }
