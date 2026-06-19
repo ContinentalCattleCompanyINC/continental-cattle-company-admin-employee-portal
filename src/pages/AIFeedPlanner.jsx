@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 import SectionHeader from '@/components/SectionHeader';
-import { Sparkles, Wheat, Syringe, RefreshCw, ChevronDown, ChevronRight, TrendingUp, Save, FolderOpen, Clock, Plus, X } from 'lucide-react';
+import { Sparkles, Wheat, Syringe, RefreshCw, ChevronDown, ChevronRight, TrendingUp, Save, FolderOpen, Clock, Plus, X, CloudSun } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -12,6 +12,10 @@ const PLAN_TYPES = [
   { value: 'ration', label: 'Feed Ration Only', icon: Wheat },
   { value: 'vaccination', label: 'Vaccination Schedule Only', icon: Syringe },
 ];
+
+const YARD_ADDRESS = '17158 E CR 49, Shattuck, OK 73858';
+const YARD_LAT = 36.2687;
+const YARD_LON = -99.8773;
 
 const FOCUS = [
   { value: 'roi', label: 'Max ROI' },
@@ -58,6 +62,8 @@ export default function AIFeedPlanner() {
   const [plan, setPlan] = useState(null);
   const [showSavedPlans, setShowSavedPlans] = useState(false);
   const [currentSavedPlanId, setCurrentSavedPlanId] = useState(null);
+  const [weather, setWeather] = useState(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
   const [intakeDate, setIntakeDate] = useState('');
   const [purchasePricePerUnit, setPurchasePricePerUnit] = useState('');
   const [purchasePriceUnit, setPurchasePriceUnit] = useState('cwt');
@@ -177,6 +183,16 @@ HEALTH EVENT HISTORY FOR THIS LOT:
 ${healthEvents.slice(0, 20).map(e => `- ${e.event_date}: ${e.event_type}, ${e.head_affected} hd affected, ${e.diagnosis ? 'Dx: ' + e.diagnosis : ''} ${e.treatment ? 'Tx: ' + e.treatment : ''} ${e.cost_per_head ? '$' + e.cost_per_head + '/hd' : ''}`).join('\n')}
 ` : '';
 
+    const weatherInfo = weather ? `
+LIVE WEATHER — ${YARD_ADDRESS} (fetched at plan generation):
+- Temperature: ${weather.temp_f}°F (feels like ${weather.feels_like_f}°F)
+- Humidity: ${weather.humidity}%
+- Wind: ${weather.wind_mph} mph, gusts to ${weather.wind_gust_mph} mph
+- Precipitation today: ${weather.precip_in}"
+- 7-Day Forecast: High ${weather.week_high}°F / Low ${weather.week_low}°F | Total rain: ${weather.week_precip}" | Max wind: ${weather.week_max_wind} mph
+- Weather adjustments needed: ${getWeatherAdjustments(weather)}
+` : `LOCATION: ${YARD_ADDRESS} — Shattuck, OK (Ellis County, Southern Great Plains). Semi-arid climate, hot summers (frequent 100°F+), cold winters, high wind prone, limited shade typical.\n`;
+
     const envInfo = environment ? `\nENVIRONMENT / NOTES: ${environment}` : '';
     const extra = additionalContext ? `\nADDITIONAL CONTEXT: ${additionalContext}` : '';
 
@@ -189,6 +205,7 @@ ${marketInfo}
 ${feedInfo}
 ${healthInfo}
 ${perfHistory}
+${weatherInfo}
 ${envInfo}
 ${extra}
 
@@ -232,7 +249,7 @@ Provide a complete timeline from arrival/processing through market:
 - Any lot-specific concerns based on health event history`;
   };
 
-  const generateFallbackPlan = () => {
+  const generateFallbackPlan = (w = weather) => {
     const l = lot;
     const mkt = market;
     const buyWeight = l?.current_weight || l?.purchase_weight || 700;
@@ -294,9 +311,19 @@ Provide a complete timeline from arrival/processing through market:
 • Pre-ship: BQA-compliant health check, confirm withdrawal times
 • Est. health cost: $45–$65/hd`;
 
+    const weatherSummary = w ? `
+CURRENT CONDITIONS — ${YARD_ADDRESS}:
+• Temperature: ${w.temp_f}°F (feels like ${w.feels_like_f}°F) | Humidity: ${w.humidity}%
+• Wind: ${w.wind_mph} mph (gusts to ${w.wind_gust_mph} mph) | Precip today: ${w.precip_in}"
+• 7-Day Forecast: High ${w.week_high}°F / Low ${w.week_low}°F | Rain: ${w.week_precip}" | Max Wind: ${w.week_max_wind} mph
+
+WEATHER-BASED ADJUSTMENTS:
+${getWeatherAdjustments(w)}
+` : `LOCATION: ${YARD_ADDRESS} (Shattuck, OK — Southern Plains, semi-arid, hot summers, cold winters)\n`;
+
     const rationProgram = `DATA-DRIVEN RATION PLAN
 ${l ? `Lot: ${l.lot_id || l.cattle_class} | ${l.head_count} hd | ${buyWeight} lbs → ${sellWeight} lbs | Stage: ${l.stage}` : 'General program — no specific lot selected'}
-
+${weatherSummary}
 AVAILABLE FEED COMMODITIES ON RECORD:
 ${feedList}
 
@@ -398,6 +425,11 @@ ${mkt?.choice_cutout ? `Cutout Spread: $${(mkt.choice_cutout - lc).toFixed(2)}/c
 
     const recommendations = `DATA-DRIVEN RECOMMENDATIONS
 Focus: ${FOCUS.find(f => f.value === focus)?.label || 'Balanced'}
+Location: ${YARD_ADDRESS}
+${w ? `Current Weather: ${w.temp_f}°F | Wind ${w.wind_mph} mph | Humidity ${w.humidity}% | 7-Day High: ${w.week_high}°F` : ''}
+
+WEATHER MANAGEMENT PRIORITIES:
+${getWeatherAdjustments(w)}
 
 TOP PRIORITIES RIGHT NOW:
 ${lc > 240 ? '1. ✓ SELL WINDOW OPEN — LC futures strong at $' + lc + '/cwt. Prioritize finishing and marketing ready cattle.' : '1. ⚠ Market below $240 — weigh holding cost vs. current price before committing to sell date.'}
@@ -501,6 +533,57 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
     toast.success(`Loaded: ${saved.lot_label} v${saved.version}`);
   };
 
+  const fetchWeather = async () => {
+    setWeatherLoading(true);
+    try {
+      // Open-Meteo free API — no key required
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${YARD_LAT}&longitude=${YARD_LON}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m,wind_gusts_10m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&forecast_days=7&timezone=America%2FChicago`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const c = data.current;
+      const d = data.daily;
+      const weatherObj = {
+        temp_f: c.temperature_2m,
+        feels_like_f: c.apparent_temperature,
+        humidity: c.relative_humidity_2m,
+        wind_mph: c.wind_speed_10m,
+        wind_gust_mph: c.wind_gusts_10m,
+        precip_in: c.precipitation,
+        weather_code: c.weather_code,
+        week_high: Math.max(...(d.temperature_2m_max || [])),
+        week_low: Math.min(...(d.temperature_2m_min || [])),
+        week_precip: (d.precipitation_sum || []).reduce((a, b) => a + b, 0).toFixed(2),
+        week_max_wind: Math.max(...(d.wind_speed_10m_max || [])),
+      };
+      setWeather(weatherObj);
+      return weatherObj;
+    } catch (e) {
+      console.error('Weather fetch failed', e);
+      return null;
+    } finally {
+      setWeatherLoading(false);
+    }
+  };
+
+  const getWeatherAdjustments = (w) => {
+    if (!w) return '';
+    const heatStress = w.temp_f > 90;
+    const severeHeat = w.temp_f > 100;
+    const coldStress = w.temp_f < 32;
+    const highWind = w.wind_mph > 25 || w.wind_gust_mph > 40;
+    const wetConditions = w.precip_in > 0.25 || parseFloat(w.week_precip) > 1.5;
+
+    const adjustments = [];
+    if (severeHeat) adjustments.push('⚠ SEVERE HEAT ALERT: Reduce feeding to cooler hours (evening/night), increase electrolytes, ensure shade and water access — reduce energy density 5–8% to prevent acidosis risk');
+    else if (heatStress) adjustments.push('⚠ HEAT STRESS: Shift feed delivery to early morning and evening, increase water availability, add potassium bicarbonate buffer, monitor bunk management closely');
+    if (coldStress) adjustments.push('❄ COLD CONDITIONS: Increase energy density 8–12%, add additional fat/corn, monitor water heaters to prevent freezing');
+    if (highWind) adjustments.push(`⚠ HIGH WINDS (${w.wind_mph} mph, gusts ${w.wind_gust_mph} mph): Secure feed storage, monitor wind-chill impact on younger cattle, check pen windbreaks`);
+    if (wetConditions) adjustments.push(`🌧 WET CONDITIONS: Watch for mud-related lameness and reduced DMI, raise feed racks/bunks above mud line, consider foot rot prevention protocol`);
+    if (!heatStress && !coldStress && !highWind && !wetConditions) adjustments.push('✓ Favorable conditions — standard ration and bunk management protocols apply');
+
+    return adjustments.join('\n');
+  };
+
   const generatePlan = async () => {
     if (!selectedLot && lots.length > 0) {
       toast.error('Please select a cattle lot');
@@ -509,6 +592,9 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
     setLoading(true);
     setPlan(null);
     setCurrentSavedPlanId(null);
+
+    // Fetch live weather for Shattuck, OK yard
+    const liveWeather = await fetchWeather();
 
     // Fetch a fresh count of existing plans for this lot to get correct version number
     let version = 1;
@@ -519,8 +605,8 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
       version = (existing?.length || 0) + 1;
     } catch (_) {}
 
-    // Generate data-driven plan instantly
-    const fallback = generateFallbackPlan();
+    // Generate data-driven plan instantly (pass live weather)
+    const fallback = generateFallbackPlan(liveWeather);
     setPlan({ ...fallback, _fallback: true });
     setLoading(false);
 
@@ -572,6 +658,29 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
         subtitle="AI-optimized rations, vaccination schedules, and economic projections per lot"
         badge="AI POWERED"
       />
+
+      {/* Yard location + live weather badge */}
+      <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-card border border-border rounded-xl text-xs">
+        <CloudSun className="w-4 h-4 text-primary flex-shrink-0" />
+        <span className="text-muted-foreground font-medium">{YARD_ADDRESS}</span>
+        {weatherLoading && <span className="text-muted-foreground animate-pulse">Fetching weather...</span>}
+        {weather && !weatherLoading && (
+          <>
+            <span className="text-foreground font-semibold">{weather.temp_f}°F</span>
+            <span className="text-muted-foreground">Feels {weather.feels_like_f}°F</span>
+            <span className="text-muted-foreground">💨 {weather.wind_mph} mph</span>
+            <span className="text-muted-foreground">💧 {weather.humidity}%</span>
+            {weather.temp_f > 100 && <span className="text-danger font-semibold">⚠ SEVERE HEAT</span>}
+            {weather.temp_f > 90 && weather.temp_f <= 100 && <span className="text-warning font-semibold">⚠ HEAT STRESS</span>}
+            {weather.temp_f < 32 && <span className="text-blue-400 font-semibold">❄ FREEZE</span>}
+            {weather.wind_mph > 25 && <span className="text-warning font-semibold">⚠ HIGH WIND</span>}
+            <span className="text-muted-foreground ml-auto">7-day: {weather.week_low}–{weather.week_high}°F | Rain: {weather.week_precip}"</span>
+          </>
+        )}
+        {!weather && !weatherLoading && (
+          <span className="text-muted-foreground">Weather loads when you generate a plan</span>
+        )}
+      </div>
 
       {/* Saved Plans Toggle */}
       <div className="flex items-center justify-between">
