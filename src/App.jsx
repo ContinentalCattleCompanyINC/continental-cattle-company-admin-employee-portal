@@ -53,6 +53,7 @@ import AIOpsAdvisor from './pages/AIOpsAdvisor';
 import CorporateStructure from './pages/CorporateStructure';
 import FeedlotOps from './pages/FeedlotOps';
 import LotPerformance from './pages/LotPerformance';
+import CommoditySourcing from './pages/CommoditySourcing';
 import MyListings from './pages/MyListings';
 import AttorneyPortal from './pages/AttorneyPortal';
 import PlatformDocumentation from './pages/PlatformDocumentation';
@@ -141,6 +142,7 @@ const AppRoutes = () => {
           <Route path="/financial-intelligence" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager', 'financial_admin', 'accountant']}><FinancialIntelligence /></RoleGate>} />
           <Route path="/field-rep" element={<FieldRepPortal />} />
           <Route path="/corporate-structure" element={<RoleGate requiredRole={['admin', 'super_admin', 'accountant', 'attorney_cpa', 'manager', 'financial_admin']}><CorporateStructure /></RoleGate>} />
+          <Route path="/commodity-sourcing" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager', 'feedlot_admin', 'feed_mill']}><CommoditySourcing /></RoleGate>} />
           <Route path="/feedlot-ops" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager', 'feedlot_admin', 'feed_mill', 'feed_truck', 'cowboy']}><FeedlotOps /></RoleGate>} />
           <Route path="/ai-feed-planner" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager', 'feedlot_admin']}><AIFeedPlanner /></RoleGate>} />
           <Route path="/staff-portal" element={<RoleGate requiredRole={['admin', 'super_admin', 'office_manager', 'manager', 'feedlot_admin', 'trucking_admin', 'maintenance_admin', 'financial_admin', 'market_admin', 'staff_admin', 'field_admin']}><StaffPortal /></RoleGate>} />
@@ -154,6 +156,7 @@ const AppRoutes = () => {
           <Route path="/attorney-portal" element={<RoleGate requiredRole={['attorney_cpa', 'admin', 'super_admin', 'accountant', 'financial_admin']}><AttorneyPortal /></RoleGate>} />
           <Route path="/platform-docs" element={<RoleGate requiredRole={['admin', 'super_admin']}><PlatformDocumentation /></RoleGate>} />
           <Route path="/system-status" element={<RoleGate requiredRole={['admin', 'super_admin']}><SystemStatus /></RoleGate>} />
+          <Route path="/commodity-sourcing" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager', 'feedlot_admin', 'feed_mill']}><CommoditySourcing /></RoleGate>} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

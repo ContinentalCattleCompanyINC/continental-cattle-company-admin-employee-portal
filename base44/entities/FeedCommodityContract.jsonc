@@ -1,0 +1,203 @@
+{
+  "name": "FeedCommodityContract",
+  "type": "object",
+  "properties": {
+    "contract_id": {
+      "type": "string"
+    },
+    "commodity_name": {
+      "type": "string",
+      "enum": [
+        "Corn",
+        "Soybean Meal",
+        "Distillers Grains",
+        "Alfalfa Hay",
+        "Wheat",
+        "Sorghum",
+        "Barley",
+        "Cottonseed Meal",
+        "Canola Meal",
+        "Mineral Premix",
+        "Vitamin Premix",
+        "Additives"
+      ]
+    },
+    "supplier_type": {
+      "type": "string",
+      "enum": [
+        "elevator",
+        "rail_terminal",
+        "port",
+        "processor",
+        "farm_direct"
+      ]
+    },
+    "supplier_name": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string",
+      "description": "Elevator/port location (e.g., 'Shattuck, OK', 'CBG Rail Terminal')"
+    },
+    "contract_type": {
+      "type": "string",
+      "enum": [
+        "spot",
+        "forward",
+        "basis",
+        "hedge_to_arrive",
+        "pre_contract"
+      ]
+    },
+    "quantity_tons": {
+      "type": "number",
+      "description": "Contract quantity in tons"
+    },
+    "price_per_ton": {
+      "type": "number",
+      "description": "Price per ton ($)"
+    },
+    "price_basis": {
+      "type": "string",
+      "description": "Basis notation (e.g., 'Dec +$0.50 bu')"
+    },
+    "futures_month": {
+      "type": "string",
+      "enum": [
+        "Mar",
+        "May",
+        "Jul",
+        "Sep",
+        "Dec"
+      ]
+    },
+    "futures_price": {
+      "type": "number",
+      "description": "Locked futures price if hedged"
+    },
+    "delivery_location": {
+      "type": "string",
+      "enum": [
+        "Shattuck OK Elevator",
+        "CBG Rail Terminal",
+        "Enid OK",
+        "Woodward OK",
+        "Liberal KS",
+        "Dodge City KS",
+        "Port (specify)"
+      ]
+    },
+    "delivery_window_start": {
+      "type": "string",
+      "format": "date"
+    },
+    "delivery_window_end": {
+      "type": "string",
+      "format": "date"
+    },
+    "rail_access": {
+      "type": "boolean",
+      "default": false,
+      "description": "Railroad access available"
+    },
+    "rail_car_type": {
+      "type": "string",
+      "enum": [
+        "covered_hopper",
+        "open_top",
+        "gondola"
+      ],
+      "description": "Rail car type if rail delivery"
+    },
+    "min_order_tons": {
+      "type": "number",
+      "description": "Minimum order quantity (rail: 110 tons/car)"
+    },
+    "quality_specs": {
+      "type": "object",
+      "properties": {
+        "protein_percent": {
+          "type": "number"
+        },
+        "tdn_percent": {
+          "type": "number"
+        },
+        "moisture_percent": {
+          "type": "number"
+        },
+        "test_weight": {
+          "type": "number",
+          "description": "lbs/bu"
+        },
+        "damage_percent": {
+          "type": "number"
+        },
+        "foreign_matter": {
+          "type": "number"
+        }
+      }
+    },
+    "payment_terms": {
+      "type": "string",
+      "enum": [
+        "cash_at_delivery",
+        "net_7",
+        "net_15",
+        "net_30",
+        "prepaid"
+      ]
+    },
+    "discount_percent": {
+      "type": "number",
+      "description": "Volume discount if applicable"
+    },
+    "freight_included": {
+      "type": "boolean",
+      "default": false,
+      "description": "Freight included in price"
+    },
+    "freight_cost_per_ton": {
+      "type": "number",
+      "description": "Freight cost if not included"
+    },
+    "contract_status": {
+      "type": "string",
+      "enum": [
+        "negotiating",
+        "pending",
+        "active",
+        "delivered",
+        "expired",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "broker_contact": {
+      "type": "string",
+      "description": "Broker/sales rep contact"
+    },
+    "broker_phone": {
+      "type": "string"
+    },
+    "broker_email": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "commodity_name",
+    "supplier_type",
+    "supplier_name",
+    "location",
+    "contract_type",
+    "quantity_tons",
+    "price_per_ton",
+    "delivery_location"
+  ]
+}

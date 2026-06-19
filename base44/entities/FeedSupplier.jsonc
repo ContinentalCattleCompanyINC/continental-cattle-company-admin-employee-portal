@@ -1,0 +1,152 @@
+{
+  "name": "FeedSupplier",
+  "type": "object",
+  "properties": {
+    "supplier_name": {
+      "type": "string"
+    },
+    "supplier_type": {
+      "type": "string",
+      "enum": [
+        "country_elevator",
+        "rail_terminal",
+        "export_port",
+        "processor",
+        "feed_mill",
+        "farm_direct",
+        "commodity_merchant"
+      ]
+    },
+    "company_name": {
+      "type": "string"
+    },
+    "contact_name": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "address": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "zip": {
+      "type": "string"
+    },
+    "location_type": {
+      "type": "string",
+      "enum": [
+        "highway",
+        "rail",
+        "river_barge",
+        "ocean_port"
+      ]
+    },
+    "rail_access": {
+      "type": "boolean",
+      "default": false
+    },
+    "railroad_lines": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Railroad companies serving this location (e.g., 'BNSF', 'UP')"
+    },
+    "elevator_capacity_bu": {
+      "type": "number",
+      "description": "Storage capacity in bushels"
+    },
+    "loading_rate_tons_hour": {
+      "type": "number",
+      "description": "Loading rate tons/hour"
+    },
+    "commodities_offered": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "pricing_model": {
+      "type": "string",
+      "enum": [
+        "cash",
+        "basis",
+        "futures_plus_basis",
+        "flat_price"
+      ]
+    },
+    "typical_basis": {
+      "type": "string",
+      "description": "Typical basis notation (e.g., 'Dec +$0.45')"
+    },
+    "volume_discount_tiers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "min_tons": {
+            "type": "number"
+          },
+          "discount_percent": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "payment_terms": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "credit_limit": {
+      "type": "number",
+      "description": "Credit limit if established"
+    },
+    "quality_certifications": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "delivery_radius_miles": {
+      "type": "number"
+    },
+    "freight_rate_per_mile": {
+      "type": "number"
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Supplier rating 1-5"
+    },
+    "preferred_status": {
+      "type": "boolean",
+      "default": false,
+      "description": "Preferred supplier status"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "supplier_name",
+    "supplier_type",
+    "contact_name",
+    "phone"
+  ]
+}
