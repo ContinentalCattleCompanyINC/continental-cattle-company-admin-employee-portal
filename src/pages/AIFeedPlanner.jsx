@@ -730,26 +730,42 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
           {savedPlans.length === 0
             ? <p className="text-sm text-muted-foreground text-center py-4">No saved plans yet.</p>
             : savedPlans.map(sp => (
-              <button key={sp.id} onClick={() => loadSavedPlan(sp)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border text-left hover:bg-secondary/40 transition-colors ${currentSavedPlanId === sp.id ? 'border-primary/40 bg-primary/5' : 'border-border'}`}>
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-foreground truncate">{sp.lot_label || 'General Program'}</div>
-                  <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
-                    <span>v{sp.version}</span><span>·</span>
-                    <span className="capitalize">{sp.focus}</span><span>·</span>
-                    {sp.is_ai_generated ? <span className="text-primary">AI</span> : <span className="text-amber-400">Data-driven</span>}
-                    {sp.estimated_profit_per_head != null && (
-                      <><span>·</span><span className={sp.estimated_profit_per_head >= 0 ? 'text-success' : 'text-danger'}>${sp.estimated_profit_per_head}/hd</span></>
-                    )}
+              <div key={sp.id} className={`flex items-center gap-2 rounded-lg border ${currentSavedPlanId === sp.id ? 'border-primary/40 bg-primary/5' : 'border-border'}`}>
+                <button onClick={() => loadSavedPlan(sp)}
+                  className="flex-1 flex items-center justify-between px-4 py-3 text-left hover:bg-secondary/40 transition-colors rounded-l-lg min-w-0">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-foreground truncate">{sp.lot_label || 'General Program'}</div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
+                      <span>v{sp.version}</span><span>·</span>
+                      <span className="capitalize">{sp.focus}</span><span>·</span>
+                      {sp.is_ai_generated ? <span className="text-primary">AI</span> : <span className="text-amber-400">Data-driven</span>}
+                      {sp.estimated_profit_per_head != null && (
+                        <><span>·</span><span className={sp.estimated_profit_per_head >= 0 ? 'text-success' : 'text-danger'}>${sp.estimated_profit_per_head}/hd</span></>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                  <Clock className="w-3 h-3 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">
-                    {sp.created_date ? format(new Date(sp.created_date), 'MM/dd HH:mm') : '—'}
-                  </span>
-                </div>
-              </button>
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                    <Clock className="w-3 h-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
+                      {sp.created_date ? format(new Date(sp.created_date), 'MM/dd HH:mm') : '—'}
+                    </span>
+                  </div>
+                </button>
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!confirm('Delete this saved plan?')) return;
+                    await base44.entities.SavedFeedPlan.delete(sp.id);
+                    queryClient.invalidateQueries({ queryKey: ['savedFeedPlans'] });
+                    if (currentSavedPlanId === sp.id) { setCurrentSavedPlanId(null); setPlan(null); }
+                    toast.success('Plan deleted');
+                  }}
+                  className="px-3 py-3 text-muted-foreground hover:text-danger transition-colors flex-shrink-0"
+                  title="Delete plan"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             ))
           }
         </div>
