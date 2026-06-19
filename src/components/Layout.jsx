@@ -79,7 +79,7 @@ export default function Layout() {
   return (
     <div className="flex h-screen bg-background flex-col md:flex-row overflow-hidden">
       {/* Sidebar - Desktop + Mobile Modal */}
-      <aside className={`${mobileMenuOpen ? 'fixed inset-y-0 left-0 z-50 w-56' : 'hidden'} md:static md:flex ${sidebarOpen ? 'md:w-56' : 'md:w-0'} bg-card border-r border-border flex-col overflow-hidden transition-all duration-300`}>
+      <aside className={`${mobileMenuOpen ? 'fixed inset-y-0 left-0 z-50 w-56 h-full' : 'hidden'} md:static md:flex ${sidebarOpen ? 'md:w-56' : 'md:w-0'} bg-card border-r border-border flex-col overflow-hidden transition-all duration-300`}>
        {/* Logo */}
        <div className="p-4 border-b border-border flex-shrink-0">
          <div className="flex items-center gap-3">
@@ -95,8 +95,8 @@ export default function Layout() {
          </div>
        </div>
 
-       {/* Navigation - Scrollable on mobile */}
-       <nav className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 p-2 space-y-1 md:overflow-y-auto">
+       {/* Navigation - Scrollable on mobile with touch support */}
+       <nav className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 p-2 space-y-1 md:overflow-y-auto touch-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           {navItems.map((item) => {
             const active = location.pathname === item.path;
             return (
@@ -117,7 +117,7 @@ export default function Layout() {
         </nav>
 
         {/* Footer - Fixed at bottom */}
-        <div className="p-3 border-t border-border text-xs text-muted-foreground space-y-1 flex-shrink-0">
+        <div className="p-3 border-t border-border text-xs text-muted-foreground space-y-1 flex-shrink-0 pb-safe">
           <div className="truncate font-medium text-foreground">{user?.full_name || user?.email}</div>
           <div className="truncate text-xs leading-tight">
             {getAccessLabel(user)}
