@@ -1,0 +1,84 @@
+{
+  "name": "SavedFeedPlan",
+  "type": "object",
+  "properties": {
+    "lot_id": {
+      "type": "string",
+      "description": "CattleLot record ID"
+    },
+    "lot_label": {
+      "type": "string",
+      "description": "Display label for the lot"
+    },
+    "plan_type": {
+      "type": "string",
+      "enum": [
+        "full",
+        "ration",
+        "vaccination"
+      ]
+    },
+    "focus": {
+      "type": "string"
+    },
+    "days_on_feed": {
+      "type": "number"
+    },
+    "target_weight": {
+      "type": "number"
+    },
+    "environment": {
+      "type": "string"
+    },
+    "additional_context": {
+      "type": "string"
+    },
+    "ration_program": {
+      "type": "string"
+    },
+    "vaccination_schedule": {
+      "type": "string"
+    },
+    "economic_projection": {
+      "type": "string"
+    },
+    "ai_recommendations": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "estimated_profit_per_head": {
+      "type": "number"
+    },
+    "estimated_roi_percent": {
+      "type": "number"
+    },
+    "estimated_cost_per_head": {
+      "type": "number"
+    },
+    "target_grade": {
+      "type": "string"
+    },
+    "is_ai_generated": {
+      "type": "boolean",
+      "default": false
+    },
+    "version": {
+      "type": "number",
+      "description": "Iteration number for same lot",
+      "default": 1
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "User email"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_type",
+    "focus"
+  ]
+}

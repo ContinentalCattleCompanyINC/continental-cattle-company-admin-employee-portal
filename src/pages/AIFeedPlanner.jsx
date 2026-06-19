@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 import SectionHeader from '@/components/SectionHeader';
-import { Sparkles, Wheat, Syringe, RefreshCw, ChevronDown, ChevronRight, Download, AlertCircle, TrendingUp, DollarSign } from 'lucide-react';
+import { Sparkles, Wheat, Syringe, RefreshCw, ChevronDown, ChevronRight, TrendingUp, Save, FolderOpen, Clock, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 const PLAN_TYPES = [
   { value: 'full', label: 'Full Program (Ration + Vaccination)', icon: Sparkles },
@@ -45,6 +46,7 @@ function PlanSection({ title, icon: SectionIcon, color, content, defaultOpen = f
 
 export default function AIFeedPlanner() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedLot, setSelectedLot] = useState('');
   const [planType, setPlanType] = useState('full');
   const [focus, setFocus] = useState('balanced');
@@ -54,10 +56,17 @@ export default function AIFeedPlanner() {
   const [additionalContext, setAdditionalContext] = useState('');
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState(null);
+  const [showSavedPlans, setShowSavedPlans] = useState(false);
+  const [currentSavedPlanId, setCurrentSavedPlanId] = useState(null);
 
   const { data: lots = [] } = useQuery({
     queryKey: ['activeLots'],
     queryFn: () => base44.entities.CattleLot.filter({ status: 'active' }, '-purchase_date', 200),
+  });
+
+  const { data: savedPlans = [] } = useQuery({
+    queryKey: ['savedFeedPlans'],
+    queryFn: () => base44.entities.SavedFeedPlan.list('-created_date', 50),
   });
 
   const { data: feedProtocols = [] } = useQuery({
@@ -341,6 +350,65 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
     };
   };
 
+  const savePlan = async (planData, isAi = false) => {
+    const l = lots.find(lo => lo.id === selectedLot);
+    // Count existing versions for this lot to auto-increment
+    const existingForLot = savedPlans.filter(p => p.lot_id === selectedLot);
+    const version = existingForLot.length + 1;
+
+    const record = {
+      lot_id: selectedLot || '',
+      lot_label: l ? `${l.lot_id || l.cattle_class} — ${l.head_count} hd @ ${l.current_weight || l.purchase_weight} lbs` : 'General Program',
+      plan_type: planType,
+      focus,
+      days_on_feed: daysOnFeed ? Number(daysOnFeed) : undefined,
+      target_weight: targetWeight ? Number(targetWeight) : undefined,
+      environment,
+      additional_context: additionalContext,
+      ration_program: planData.ration_program || '',
+      vaccination_schedule: planData.vaccination_schedule || '',
+      economic_projection: planData.economic_projection || '',
+      ai_recommendations: planData.ai_recommendations || '',
+      summary: planData.summary || '',
+      estimated_profit_per_head: planData.estimated_profit_per_head,
+      estimated_roi_percent: planData.estimated_roi_percent,
+      estimated_cost_per_head: planData.estimated_cost_per_head,
+      target_grade: planData.target_grade || '',
+      is_ai_generated: isAi,
+      version,
+      generated_by: user?.email || '',
+    };
+
+    const saved = await base44.entities.SavedFeedPlan.create(record);
+    queryClient.invalidateQueries({ queryKey: ['savedFeedPlans'] });
+    return saved.id;
+  };
+
+  const loadSavedPlan = (saved) => {
+    setSelectedLot(saved.lot_id || '');
+    setPlanType(saved.plan_type || 'full');
+    setFocus(saved.focus || 'balanced');
+    setDaysOnFeed(saved.days_on_feed ? String(saved.days_on_feed) : '');
+    setTargetWeight(saved.target_weight ? String(saved.target_weight) : '');
+    setEnvironment(saved.environment || '');
+    setAdditionalContext(saved.additional_context || '');
+    setPlan({
+      ration_program: saved.ration_program,
+      vaccination_schedule: saved.vaccination_schedule,
+      economic_projection: saved.economic_projection,
+      ai_recommendations: saved.ai_recommendations,
+      summary: saved.summary,
+      estimated_profit_per_head: saved.estimated_profit_per_head,
+      estimated_roi_percent: saved.estimated_roi_percent,
+      estimated_cost_per_head: saved.estimated_cost_per_head,
+      target_grade: saved.target_grade,
+      _fallback: !saved.is_ai_generated,
+    });
+    setCurrentSavedPlanId(saved.id);
+    setShowSavedPlans(false);
+    toast.success(`Loaded: ${saved.lot_label} v${saved.version}`);
+  };
+
   const generatePlan = async () => {
     if (!selectedLot && lots.length > 0) {
       toast.error('Please select a cattle lot');
@@ -348,12 +416,18 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
     }
     setLoading(true);
     setPlan(null);
+    setCurrentSavedPlanId(null);
 
     // Always generate data-driven plan instantly
     const fallback = generateFallbackPlan();
-    setPlan({ ...fallback, _fallback: true });
+    const fallbackPlan = { ...fallback, _fallback: true };
+    setPlan(fallbackPlan);
     setLoading(false);
-    toast.success('Plan generated from your data');
+
+    // Auto-save data-driven plan immediately
+    const savedId = await savePlan(fallback, false);
+    setCurrentSavedPlanId(savedId);
+    toast.success('Plan generated & saved');
 
     // Silently try to upgrade with AI in the background
     try {
@@ -376,9 +450,17 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
         }
       });
       setPlan(result);
-      toast.success('Plan upgraded with AI analysis');
+      // Update saved record with AI version
+      if (savedId) {
+        await base44.entities.SavedFeedPlan.update(savedId, {
+          ...result,
+          is_ai_generated: true,
+        });
+        queryClient.invalidateQueries({ queryKey: ['savedFeedPlans'] });
+      }
+      toast.success('Plan upgraded with AI & saved');
     } catch (_) {
-      // Keep the data-driven plan already shown — no error needed
+      // Keep the data-driven plan — already saved
     }
   };
 
@@ -389,6 +471,67 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
         subtitle="AI-optimized rations, vaccination schedules, and economic projections per lot"
         badge="AI POWERED"
       />
+
+      {/* Saved Plans Toggle */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => setShowSavedPlans(o => !o)}
+          className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-lg text-sm text-foreground hover:bg-secondary/40 transition-colors"
+        >
+          <FolderOpen className="w-4 h-4 text-primary" />
+          Saved Plans ({savedPlans.length})
+          {showSavedPlans ? <X className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
+        </button>
+        {plan && (
+          <button
+            onClick={() => { setPlan(null); setCurrentSavedPlanId(null); }}
+            className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-lg text-sm text-primary hover:bg-primary/20 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Generate New Plan
+          </button>
+        )}
+      </div>
+
+      {/* Saved Plans Drawer */}
+      {showSavedPlans && (
+        <div className="bg-card border border-border rounded-xl p-4 space-y-2 max-h-80 overflow-y-auto">
+          {savedPlans.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No saved plans yet. Generate a plan to auto-save it.</p>
+          ) : (
+            savedPlans.map(sp => (
+              <button
+                key={sp.id}
+                onClick={() => loadSavedPlan(sp)}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border text-left hover:bg-secondary/40 transition-colors ${currentSavedPlanId === sp.id ? 'border-primary/40 bg-primary/5' : 'border-border'}`}
+              >
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-foreground truncate">{sp.lot_label || 'General Program'}</div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
+                    <span>v{sp.version}</span>
+                    <span>·</span>
+                    <span className="capitalize">{sp.focus}</span>
+                    <span>·</span>
+                    {sp.is_ai_generated
+                      ? <span className="text-primary">AI</span>
+                      : <span className="text-amber-400">Data-driven</span>
+                    }
+                    {sp.estimated_profit_per_head != null && (
+                      <><span>·</span><span className={sp.estimated_profit_per_head >= 0 ? 'text-success' : 'text-danger'}>${sp.estimated_profit_per_head}/hd</span></>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                  <Clock className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    {sp.created_date ? format(new Date(sp.created_date), 'MM/dd HH:mm') : '—'}
+                  </span>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Config Panel */}
       <div className="bg-card border border-border rounded-xl p-6 space-y-5">
@@ -478,16 +621,24 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
           </div>
         )}
 
-        <button
-          onClick={generatePlan}
-          disabled={loading}
-          className="flex items-center gap-3 px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bebas text-lg tracking-wide hover:bg-primary/90 disabled:opacity-60 transition-colors"
-        >
-          {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-          {loading ? 'GENERATING AI PLAN...' : 'GENERATE AI PLAN'}
-        </button>
+        <div className="flex items-center gap-4 flex-wrap">
+          <button
+            onClick={generatePlan}
+            disabled={loading}
+            className="flex items-center gap-3 px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bebas text-lg tracking-wide hover:bg-primary/90 disabled:opacity-60 transition-colors"
+          >
+            {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+            {loading ? 'GENERATING...' : plan ? 'GENERATE NEW PLAN' : 'GENERATE AI PLAN'}
+          </button>
+          {currentSavedPlanId && !loading && (
+            <div className="flex items-center gap-1.5 text-xs text-success">
+              <Save className="w-3.5 h-3.5" />
+              Auto-saved
+            </div>
+          )}
+        </div>
         {loading && (
-          <p className="text-xs text-muted-foreground">Generating plan from your data instantly...</p>
+          <p className="text-xs text-muted-foreground">Generating plan from your data instantly, then upgrading with AI...</p>
         )}
       </div>
 
