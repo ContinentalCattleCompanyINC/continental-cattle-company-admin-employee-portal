@@ -13,14 +13,9 @@ const PLAN_TYPES = [
   { value: 'vaccination', label: 'Vaccination Schedule Only', icon: Syringe },
 ];
 
-// Destination yard — Shattuck, OK
-const YARD_ADDRESS = '17158 E CR 49, Shattuck, OK 73858';
-const YARD_LAT = 36.2687;
-const YARD_LON = -99.8773;
-const AVG_SPEED_MPH = 50;
-
 import { BREED_TYPES, SEX_OPTIONS, getCattleLabel, isDairy, isBeefDairy, isFullBeef, getUsdaLimit as getUsdaLimitFromConfig, getTargetGrade, getPerformance } from '@/lib/cattleConfig';
 import { freightCostPerHead, TRUCKING_DEFAULTS } from '@/lib/truckingConfig';
+import { computeBillingMiles, estimateShrink, YARD_ADDR as YARD_ADDRESS, TRUCK_MPH_MIN, TRUCK_MPH_MAX, TRUCK_MPH_AVG } from '@/lib/mileageEngine';
 
 const FOCUS = [
   { value: 'roi',      label: 'Max ROI' },
@@ -30,16 +25,9 @@ const FOCUS = [
   { value: 'balanced', label: 'Balanced (Grade + Cost + ROI)' },
 ];
 
-// Approximate shrink lookup by distance
-const estimateShrinkPct = (miles) => {
-  if (!miles || miles <= 0) return 2.0;
-  if (miles < 100)  return 2.0;
-  if (miles < 250)  return 2.5;
-  if (miles < 500)  return 3.0;
-  if (miles < 750)  return 3.5;
-  if (miles < 1000) return 4.0;
-  return 4.5;
-};
+// Yard constants
+const YARD_LAT = 36.2687;
+const YARD_LON = -99.8773;
 
 function PlanSection({ title, icon: Icon, color, content, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -73,30 +61,26 @@ export default function AIFeedPlanner() {
   const [focus, setFocus] = useState('balanced');
 
   // Core cattle economics inputs
-  const [arrivalWt, setArrivalWt]         = useState('');   // lbs/hd at arrival
-  const [shippingWt, setShippingWt]       = useState('');   // lbs/hd target sell wt
-  const [purchasePrice, setPurchasePrice] = useState('');   // $/cwt
-  const [adg, setAdg]                     = useState('');   // lbs/hd/day
-  const [cog, setCog]                     = useState('');   // $/lb cost of gain
-  const [daysOnFeed, setDaysOnFeed]       = useState('');   // DOF override
-  const [interestRate, setInterestRate]   = useState('8');  // % annual
+  const [arrivalWt, setArrivalWt]         = useState('');
+  const [shippingWt, setShippingWt]       = useState('');
+  const [purchasePrice, setPurchasePrice] = useState('');
+  const [adg, setAdg]                     = useState('');
+  const [cog, setCog]                     = useState('');
+  const [daysOnFeed, setDaysOnFeed]       = useState('');
+  const [interestRate, setInterestRate]   = useState('8');
   const [intakeDate, setIntakeDate]       = useState('');
-  const [ageAtEntryDays, setAgeAtEntryDays] = useState('');
   const [additionalContext, setAdditionalContext] = useState('');
 
-  // Trucking inputs — auto-populated from transit miles when calculated
-  const [truckMilesIn, setTruckMilesIn]   = useState('');   // override: loaded miles in
-  const [truckMilesOut, setTruckMilesOut] = useState('200');// override: loaded miles out
-  const [headOnLoad, setHeadOnLoad]       = useState('40'); // head per load
-  const [dieselFeed, setDieselFeed]       = useState('3.60');// $/gal
+  // Trucking inputs
+  const [truckMilesOut, setTruckMilesOut] = useState('200');
+  const [headOnLoad, setHeadOnLoad]       = useState('40');
+  const [dieselFeed, setDieselFeed]       = useState('3.60');
 
-  // Origin / transit
-  const [originCity, setOriginCity]       = useState('');   // free-text "City, State"
-  const [transitMiles, setTransitMiles]   = useState(null); // computed
-  const [transitHours, setTransitHours]   = useState(null); // computed
-  const [transitShrink, setTransitShrink] = useState(null); // computed %
-  const [geocoding, setGeocoding]         = useState(false);
-  const [shrinkOverride, setShrinkOverride] = useState(''); // manual override
+  // Origin / multi-source mileage
+  const [originCity, setOriginCity]       = useState('');
+  const [mileageResult, setMileageResult] = useState(null);  // full result from mileageEngine
+  const [calculatingMiles, setCalculatingMiles] = useState(false);
+  const [shrinkOverride, setShrinkOverride] = useState('');
 
   // UI state
   const [loading, setLoading]             = useState(false);
@@ -139,56 +123,33 @@ export default function AIFeedPlanner() {
   const market = marketInputs[0];
 
   // -------------------------------------------------------------------
-  // Geocode origin → compute miles, hours, shrink
+  // Multi-source mileage engine
+  // Google Maps (OSRM: 3 route alternatives) avg'd + Trucker Path estimate avg'd = billing miles
   // -------------------------------------------------------------------
   const computeTransit = async () => {
     if (!originCity.trim()) return;
-    setGeocoding(true);
+    setCalculatingMiles(true);
     try {
-      // Use Open-Meteo geocoding (free, no key)
-      const geo = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(originCity)}&count=1&language=en&format=json`
-      ).then(r => r.json());
-
-      if (!geo.results?.length) {
-        toast.error('Could not locate origin city. Try "City, State" format.');
-        return;
-      }
-
-      const { latitude: oLat, longitude: oLon, name, admin1 } = geo.results[0];
-
-      // Haversine distance
-      const R = 3958.8; // miles
-      const dLat = (YARD_LAT - oLat) * Math.PI / 180;
-      const dLon = (YARD_LON - oLon) * Math.PI / 180;
-      const a = Math.sin(dLat / 2) ** 2 +
-        Math.cos(oLat * Math.PI / 180) * Math.cos(YARD_LAT * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-      const miles = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-
-      // Road-distance estimate: multiply straight-line by 1.25 factor
-      const roadMiles = Math.round(miles * 1.25);
-      const hours = (roadMiles / AVG_SPEED_MPH);
-      const shrink = estimateShrinkPct(roadMiles);
-
-      setTransitMiles(roadMiles);
-      setTransitHours(hours);
-      setTransitShrink(shrink);
-      toast.success(`Transit from ${name}, ${admin1}: ~${roadMiles} mi, ~${hours.toFixed(1)} hrs, est. ${shrink}% shrink`);
+      const result = await computeBillingMiles(originCity);
+      setMileageResult(result);
+      toast.success(
+        `${result.originName} → Shattuck OK: ${result.finalBillingMiles} billing mi | ` +
+        `ETA ${result.etaMinHrs}–${result.etaMaxHrs} hrs | ${result.shrinkPct}% shrink`
+      );
     } catch (e) {
-      toast.error('Transit calculation failed. Enter shrink manually.');
+      toast.error('Mileage calculation failed. Check city/state format and try again.');
     } finally {
-      setGeocoding(false);
+      setCalculatingMiles(false);
     }
   };
 
-  // Effective shrink to use in calcs (manual override wins)
+  // Derived from mileage result
+  const transitMiles  = mileageResult?.finalBillingMiles || null;
   const effectiveShrink = shrinkOverride
     ? parseFloat(shrinkOverride)
-    : (transitShrink ?? 3.0);
+    : (mileageResult?.shrinkPct ?? 3.0);
 
-  // Auto-compute freight from trucking engine
-  // Haul-in miles: use transit miles if calculated, else manual override
-  const haulInMiles  = parseInt(truckMilesIn)  || transitMiles || 300;
+  const haulInMiles  = transitMiles || 300;
   const haulOutMiles = parseInt(truckMilesOut) || 200;
   const haulHeads    = parseInt(headOnLoad)    || lot?.head_count || 40;
   const haulDiesel   = parseFloat(dieselFeed)  || 3.60;
@@ -231,28 +192,19 @@ export default function AIFeedPlanner() {
     const roi = totalCost > 0 ? (profitPerHead / totalCost * 100) : 0;
     const breakevenCwt = totalCost / netSellWt * 100;
 
-    // USDA / age limit calcs
-    const usdaLimit = getUsdaLimitFromConfig(lot?.breed_type, focus);
-    const ageEntry  = parseInt(ageAtEntryDays) || null;
-    const intake    = intakeDate || lot?.purchase_date || '';
+    // USDA compliance — weight-based (no age-in-days required)
+    const usdaLimit  = getUsdaLimitFromConfig(lot?.breed_type, focus);
+    const targetGrade = getTargetGrade(lot?.breed_type);
+    const intake     = intakeDate || lot?.purchase_date || '';
     let expectedOutDate = null;
     if (intake && dof) {
       const d = new Date(intake); d.setDate(d.getDate() + dof);
       expectedOutDate = d.toISOString().split('T')[0];
     }
-    let maxDofToLimit = null, breakevenAtLimit = null, weightAtLimit = null;
-    if (ageEntry !== null) {
-      maxDofToLimit = Math.max(0, usdaLimit.days - ageEntry);
-      weightAtLimit = Math.round(buyWt + adgVal * maxDofToLimit);
-      const feedLimit  = Math.max(0, (weightAtLimit - buyWt)) * cogVal;
-      const yardLimit  = yardage * maxDofToLimit;
-      const intLimit   = (ppPerHead + truckIn) * rate * (maxDofToLimit / 365);
-      const totalLimit = ppPerHead + feedLimit + yardLimit + healthCost + truckIn + truckOut + intLimit;
-      const netWtLimit = weightAtLimit * (1 - shrink);
-      breakevenAtLimit = netWtLimit > 0 ? parseFloat((totalLimit / netWtLimit * 100).toFixed(2)) : null;
-    }
+    // Weight-based grade compliance check: does the target sell weight fit the grade's expected range?
+    const gradeMaxWt = isDairy(lot?.breed_type) ? 1350 : isBeefDairy(lot?.breed_type) ? 1400 : 1500;
+    const weightCompliant = sellWt <= gradeMaxWt;
 
-    const targetGrade = getTargetGrade(lot?.breed_type);
     const corn = market?.corn_price || 4.50;
     const headCount = lot?.head_count || null;
 
@@ -260,9 +212,8 @@ export default function AIFeedPlanner() {
       buyWt, sellWt, gainLbs, dof, adgVal, cogVal, ppCwt, ppPerHead,
       feedCost, yardageCost, healthCost, truckIn, truckOut, interestCost,
       totalCost, lc, fc, shrink: effectiveShrink, netSellWt, grossRev,
-      profitPerHead, roi, breakevenCwt, usdaLimit, ageEntry,
-      expectedOutDate, maxDofToLimit, breakevenAtLimit, weightAtLimit,
-      targetGrade, headCount, corn, yardage,
+      profitPerHead, roi, breakevenCwt, usdaLimit, expectedOutDate,
+      targetGrade, headCount, corn, yardage, weightCompliant, gradeMaxWt,
     };
   };
 
@@ -273,13 +224,19 @@ export default function AIFeedPlanner() {
     const l   = lot;
     const mkt = market;
     const usdaLimit = getUsdaLimitFromConfig(l?.breed_type, focus);
-    const transitInfo = transitMiles
-      ? `Origin: ${originCity} → ${YARD_ADDRESS} | ~${transitMiles} mi road | ~${transitHours?.toFixed(1)} hrs @ ${AVG_SPEED_MPH} mph avg | Est. shrink: ${econ.shrink}%`
-      : originCity ? `Origin: ${originCity} (distance not yet calculated)` : 'Origin not specified';
+    const mr = mileageResult;
+    const transitInfo = mr
+      ? `Origin: ${mr.originName} → ${YARD_ADDRESS}\n` +
+        `  Google Maps (${mr.googleRoutes.length} routes): ${mr.googleRoutes.join(' / ')} mi → avg ${mr.googleAvgMiles} mi\n` +
+        `  Trucker Path estimate: ${mr.truckerPathMiles} mi\n` +
+        `  FINAL BILLING MILES: ${mr.finalBillingMiles} mi (avg of both sources)\n` +
+        `  ETA: ${mr.etaMinHrs}–${mr.etaMaxHrs} hrs @ ${TRUCK_MPH_MIN}–${TRUCK_MPH_MAX} mph\n` +
+        `  Transit shrink: ${econ.shrink}% | Stress: ${mr.stressLevel}`
+      : originCity ? `Origin: ${originCity} (miles not yet calculated)` : 'Origin not specified';
 
     return `You are a world-class livestock nutritionist and feedlot economist. Use EXACT economics inputs — do not override user-entered values.
 
-USDA BQA: Select ≤30 mo (912 days) | Choice/Prime ≤42 mo (1,278 days) | Target: ${usdaLimit.grade}${ageAtEntryDays ? ` | Age at entry: ${ageAtEntryDays} days — ${usdaLimit.days - parseInt(ageAtEntryDays)} days max DOF remaining` : ''}
+USDA BQA (weight-based compliance): Select ≤30 mo | Choice/Prime ≤42 mo | Target grade: ${usdaLimit.grade} | Target sell weight: ${econ.sellWt} lbs${econ.weightCompliant ? ' ✓ Within grade weight range' : ` ⚠ Exceeds recommended ${econ.gradeMaxWt} lbs for this breed/grade`}
 
 CATTLE LOT: ${l ? `${getCattleLabel(l?.breed_type, l?.sex)} | ${l.head_count} hd | Stage: ${l.stage} | Yard: ${l.yard}, Pen: ${l.pen}` : 'No specific lot'}
 BREED: ${l?.breed_type ? `${BREED_TYPES.find(b => b.value === l.breed_type)?.label || l.breed_type}` : 'Not specified'} | SEX: ${l?.sex ? `${SEX_OPTIONS.find(s => s.value === l.sex)?.label || l.sex}` : 'Not specified'}
@@ -293,7 +250,7 @@ ECONOMICS INPUTS:
 - Arrival Wt: ${econ.buyWt} lbs/hd | Shipping Wt: ${econ.sellWt} lbs/hd | Gain: ${econ.gainLbs} lbs
 - Purchase Price: $${econ.ppCwt}/cwt ($${econ.ppPerHead.toFixed(0)}/hd)
 - ADG: ${econ.adgVal} lbs/day | COG: $${econ.cogVal}/lb | DOF: ${econ.dof} days
-- Interest: ${interestRate}%/yr | Freight In: $${econ.truckIn.toFixed(2)}/hd (${haulInMiles} mi @ $${freightInResult.ratePerMile.toFixed(2)}/mi, driver $${freightInResult.driverPayPerLoad.toFixed(0)}/load) | Freight Out: $${econ.truckOut.toFixed(2)}/hd (${haulOutMiles} mi)
+- Interest: ${interestRate}%/yr | Freight In: $${econ.truckIn.toFixed(2)}/hd (${haulInMiles} billing mi @ $${freightInResult.ratePerMile.toFixed(2)}/mi, driver $${freightInResult.driverPayPerLoad.toFixed(0)}/load) | Freight Out: $${econ.truckOut.toFixed(2)}/hd (${haulOutMiles} mi)
 - Pencil Shrink at Sale: ${econ.shrink}%
 - Total Cost: $${econ.totalCost.toFixed(0)}/hd | Breakeven: $${econ.breakevenCwt.toFixed(2)}/cwt
 
@@ -324,19 +281,23 @@ ${planType !== 'vaccination' ? `## 🌾 RATION PROGRAM\n- Phase-by-phase: DMI, i
       buyWt, sellWt, gainLbs, dof, adgVal, cogVal, ppCwt, ppPerHead,
       feedCost, yardageCost, healthCost, truckIn, truckOut, interestCost,
       totalCost, lc, fc, shrink, netSellWt, grossRev, profitPerHead, roi,
-      breakevenCwt, usdaLimit, ageEntry, expectedOutDate, maxDofToLimit,
-      breakevenAtLimit, weightAtLimit, targetGrade, headCount, corn, yardage,
+      breakevenCwt, usdaLimit, expectedOutDate,
+      targetGrade, headCount, corn, yardage, weightCompliant, gradeMaxWt,
     } = econ;
 
-    const ageAtSale    = ageEntry !== null ? ageEntry + dof : null;
-    const exceedsLimit = ageAtSale !== null && ageAtSale > usdaLimit.days;
-    const dmiLbs       = Math.round(buyWt * 0.025);
+    const dmiLbs = Math.round(buyWt * 0.025);
+    const mr = mileageResult;
 
-    // Transit summary
-    const transitBlock = transitMiles
-      ? `TRANSIT: ${originCity} → ${YARD_ADDRESS}\n• Distance: ~${transitMiles} mi (road est.) | ETA: ~${transitHours?.toFixed(1)} hrs @ ${AVG_SPEED_MPH} mph avg\n• Estimated shrink at arrival: ${transitShrink}%${shrinkOverride ? ` (overridden to ${shrinkOverride}%)` : ''}\n• Stress level: ${transitMiles < 250 ? 'LOW (<250 mi)' : transitMiles < 600 ? 'MODERATE (250–600 mi)' : 'HIGH (>600 mi — extended receiving protocol required)'}`
+    // Multi-source transit summary
+    const transitBlock = mr
+      ? `TRANSIT: ${mr.originName} → ${YARD_ADDRESS}\n` +
+        `• Google Maps routes: ${mr.googleRoutes.join(' / ')} mi → avg ${mr.googleAvgMiles} mi\n` +
+        `• Trucker Path estimate: ${mr.truckerPathMiles} mi\n` +
+        `• FINAL BILLING MILES: ${mr.finalBillingMiles} mi (avg of both sources)\n` +
+        `• ETA: ${mr.etaMinHrs}–${mr.etaMaxHrs} hrs @ ${TRUCK_MPH_MIN}–${TRUCK_MPH_MAX} mph avg\n` +
+        `• Shrink: ${shrink}%${shrinkOverride ? ' (manual override)' : ' (auto from mileage)'} | Stress: ${mr.stressLevel}`
       : originCity
-        ? `ORIGIN: ${originCity} (distance not calculated — enter origin and click Calculate)`
+        ? `ORIGIN: ${originCity} (click Calculate to get multi-source billing miles)`
         : `ORIGIN: Not specified — using standard receiving protocol`;
 
     const feedList = feedProtocols.length > 0
@@ -351,8 +312,9 @@ ${planType !== 'vaccination' ? `## 🌾 RATION PROGRAM\n- Phase-by-phase: DMI, i
       ? `WEATHER: ${w.temp_f}°F (feels ${w.feels_like_f}°F) | Wind ${w.wind_mph} mph | 7-day: ${w.week_low}–${w.week_high}°F\n${getWeatherAdjustments(w)}`
       : `LOCATION: ${YARD_ADDRESS} (Southern Plains)`;
 
+    const billingMi = mr?.finalBillingMiles || 0;
     // Receiving phase length varies by transit stress
-    const receivingDays = transitMiles > 600 ? 28 : transitMiles > 250 ? 21 : 14;
+    const receivingDays = billingMi > 600 ? 28 : billingMi > 250 ? 21 : 14;
 
     const rationProgram = `DATA-DRIVEN RATION PLAN
 ${l ? `Lot: ${l.lot_id || getCattleLabel(l.breed_type, l.sex)} | ${headCount} hd | ${buyWt} lbs → ${sellWt} lbs | ADG ${adgVal} lbs/day | ${dof} DOF` : 'General program'}
@@ -365,7 +327,7 @@ ${feedList}
 
 PHASE 1 — RECEIVING / STARTER (Days 1–${receivingDays})
 DMI: ${Math.round(dmiLbs * 0.75)} lbs/hd/day | TDN: 68–72% | CP: 14–16%
-• ${transitMiles > 600 ? 'EXTENDED receiving — high-stress long haul. Electrolytes day 1–3, light hay only days 1–3, gradual concentrate introduction.' : transitMiles > 250 ? 'Standard receiving — moderate transit stress. Hay/roughage emphasis first week.' : 'Short haul — normal receiving. Begin concentrate adaptation sooner.'}
+• ${billingMi > 600 ? 'EXTENDED receiving — high-stress long haul. Electrolytes day 1–3, light hay only days 1–3, gradual concentrate introduction.' : billingMi > 250 ? 'Standard receiving — moderate transit stress. Hay/roughage emphasis first week.' : 'Short haul — normal receiving. Begin concentrate adaptation sooner.'}
 • Focus: stress recovery, rumen adaptation | ADG est: 1.5–2.0 lbs/day
 
 PHASE 2 — GROWER (Days ${receivingDays + 1}–${Math.round(dof * 0.55)})
@@ -385,11 +347,11 @@ ${l ? `${l.lot_id || getCattleLabel(l.breed_type, l.sex)} | ${getCattleLabel(l.b
 ${transitBlock}
 
 TRANSIT STRESS PROTOCOL ADJUSTMENT:
-${transitMiles > 600
+${billingMi > 600
   ? '⚠ HIGH STRESS HAUL (>600 mi): Extended monitoring window. Expect elevated BRD risk 7–21 days post-arrival. Watch for chronic respiratories at 30 days. Consider metaphylaxis on arrival for high-risk cattle.'
-  : transitMiles > 250
+  : billingMi > 250
     ? '⚠ MODERATE HAUL (250–600 mi): Standard BRD protocol, enhanced monitoring week 1–2.'
-    : transitMiles
+    : billingMi > 0
       ? '✓ SHORT HAUL (<250 mi): Low transit stress. Standard receiving protocol applies.'
       : 'Origin not specified — apply moderate protocol as default.'}
 
@@ -398,7 +360,7 @@ ${healthList}
 
 BQA STANDARD TIMELINE:
 • Day 0: Weigh, tag, process | Vaccines, dewormer, implant | Neck-triangle only
-${transitMiles > 600 ? '• Day 0–3: Electrolytes in water, hay only, monitor closely\n• Day 3–7: Begin concentrate introduction slowly' : ''}
+${billingMi > 600 ? '• Day 0–3: Electrolytes in water, hay only, monitor closely\n• Day 3–7: Begin concentrate introduction slowly' : ''}
 • Day 14–21: Boosters | Day 60–90: Re-implant
 • Day ${dof - 28}: Terminal implant — confirm 28-day withdrawal
 • Pre-ship: Health inspection, compliance check
@@ -417,9 +379,9 @@ INPUTS:
 • COG:                $${cogVal}/lb
 • Days on feed:       ${dof} days
 • Interest rate:      ${interestRate}%/yr
-• Trucking in:        $${truckIn}/hd | Trucking out: $${truckOut}/hd
+• Trucking in:        $${truckIn.toFixed(0)}/hd | Trucking out: $${truckOut.toFixed(0)}/hd
 • Pencil shrink:      ${shrink}%
-${transitMiles ? `• Origin:             ${originCity} → ~${transitMiles} mi → ~${transitHours?.toFixed(1)} hrs transit` : ''}
+${mr ? `• Billing miles:      ${mr.finalBillingMiles} mi (Google avg ${mr.googleAvgMiles} mi / Trucker Path ${mr.truckerPathMiles} mi)\n• ETA:                ${mr.etaMinHrs}–${mr.etaMaxHrs} hrs @ ${TRUCK_MPH_MIN}–${TRUCK_MPH_MAX} mph` : ''}
 
 COST BREAKDOWN:
 • Purchase:           $${ppPerHead.toFixed(0)}/hd
@@ -442,14 +404,11 @@ ${headCount ? `• Total lot revenue:  $${(grossRev * headCount).toFixed(0)}  ($
 TIMELINE:
 • Days on feed:       ${dof} days
 • Expected out date:  ${expectedOutDate || 'N/A — set intake date'}
-${ageAtSale !== null ? `• Age at sale:        ${ageAtSale} days (${(ageAtSale / 30.4).toFixed(1)} mo)${exceedsLimit ? ` ⚠ EXCEEDS USDA ${usdaLimit.grade} limit (${usdaLimit.months} mo)` : ` ✓ Within ${usdaLimit.grade} limit`}` : ''}
-${maxDofToLimit !== null ? `• Max DOF to ${usdaLimit.label}: ${maxDofToLimit} days remaining` : ''}
 
-${breakevenAtLimit !== null ? `USDA BQA BREAKEVEN (${usdaLimit.grade} — ${usdaLimit.months} mo):
-• Weight at limit:    ${weightAtLimit} lbs/hd
-• Breakeven:          $${breakevenAtLimit}/cwt  (LC $${lc} ${lc >= breakevenAtLimit ? '✓ covers costs' : '⚠ short by $' + (breakevenAtLimit - lc).toFixed(2)})
-──────────────────────────────────────
-` : ''}
+USDA BQA (weight-based):
+• Target grade:       ${targetGrade}
+• Sell weight:        ${sellWt} lbs/hd ${weightCompliant ? `✓ within ${targetGrade} range` : `⚠ exceeds recommended ${gradeMaxWt} lbs for this breed/grade`}
+
 NET PROFIT:           $${profitPerHead.toFixed(0)}/hd  ${profitPerHead >= 0 ? '✓' : '⚠ LOSS'}
 ROI:                  ${roi.toFixed(1)}%
 BREAKEVEN SELL:       $${breakevenCwt.toFixed(2)}/cwt  (vs LC $${lc} — ${lc >= breakevenCwt ? '✓ $' + (lc - breakevenCwt).toFixed(2) + ' margin' : '⚠ $' + (breakevenCwt - lc).toFixed(2) + ' short'})
@@ -464,11 +423,11 @@ SENSITIVITY:
 Focus: ${FOCUS.find(f => f.value === focus)?.label}
 ${w ? `Weather: ${w.temp_f}°F | Wind ${w.wind_mph} mph | 7-Day High: ${w.week_high}°F` : ''}
 
-TRANSIT / ORIGIN ANALYSIS:
-${transitMiles
-  ? `• ${originCity} → Shattuck, OK | ${transitMiles} mi | ~${transitHours?.toFixed(1)} hrs\n• Arrival shrink: ${shrink}%\n• Stress level: ${transitMiles > 600 ? '⚠ HIGH — implement extended receiving protocol and BRD metaphylaxis consideration' : transitMiles > 250 ? '⚠ MODERATE — standard BRD protocol, enhanced monitoring week 1' : '✓ LOW — normal receiving protocol'}`
+TRANSIT / MILEAGE ANALYSIS:
+${mr
+  ? `• Route: ${mr.originName} → Shattuck, OK\n• Google Maps routes: ${mr.googleRoutes.join(' / ')} mi (avg ${mr.googleAvgMiles} mi)\n• Trucker Path: ${mr.truckerPathMiles} mi\n• BILLING MILES: ${mr.finalBillingMiles} mi | ETA: ${mr.etaMinHrs}–${mr.etaMaxHrs} hrs\n• Shrink: ${shrink}% | Stress: ${billingMi > 600 ? '⚠ HIGH — extended receiving protocol, BRD metaphylaxis consideration' : billingMi > 250 ? '⚠ MODERATE — standard BRD, enhanced monitoring week 1' : '✓ LOW — normal receiving protocol'}`
   : originCity
-    ? `• Origin: ${originCity} (calculate distance above for shrink & protocol recommendations)`
+    ? `• Origin: ${originCity} (click Calculate to run multi-source mileage)`
     : '• No origin entered — standard receiving protocol applied'}
 
 MARKET:
@@ -491,17 +450,16 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
       vaccination_schedule: vaccinationSchedule,
       economic_projection: econProjection,
       ai_recommendations: recommendations,
-      summary: `${l ? `${l.lot_id || getCattleLabel(l.breed_type, l.sex)} (${headCount} hd)` : 'General'}: $${profitPerHead.toFixed(0)}/hd profit | ${roi.toFixed(1)}% ROI | ${dof} DOF | Buy $${ppCwt}/cwt → Sell ${sellWt} lbs @ LC $${lc}/cwt | BE $${breakevenCwt.toFixed(2)}/cwt${transitMiles ? ` | Origin: ${originCity} ~${transitMiles} mi` : ''}.`,
+      summary: `${l ? `${l.lot_id || getCattleLabel(l.breed_type, l.sex)} (${headCount} hd)` : 'General'}: $${profitPerHead.toFixed(0)}/hd profit | ${roi.toFixed(1)}% ROI | ${dof} DOF | Buy $${ppCwt}/cwt → Sell ${sellWt} lbs @ LC $${lc}/cwt | BE $${breakevenCwt.toFixed(2)}/cwt${mr ? ` | ${mr.originName} → ${mr.finalBillingMiles} billing mi` : ''}.`,
       estimated_profit_per_head: Math.round(profitPerHead),
       estimated_roi_percent: parseFloat(roi.toFixed(1)),
       estimated_cost_per_head: Math.round(totalCost),
       target_grade: targetGrade,
       _expectedOutDate: expectedOutDate,
-      _maxDofToLimit: maxDofToLimit,
       _usdaLimit: usdaLimit,
-      _breakevenAtLimit: breakevenAtLimit,
-      _weightAtLimit: weightAtLimit,
-      _ageAtEntry: ageEntry,
+      _weightCompliant: weightCompliant,
+      _gradeMaxWt: gradeMaxWt,
+      _mileageResult: mr,
     };
   };
 
@@ -521,11 +479,7 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
       days_on_feed: daysOnFeed ? Number(daysOnFeed) : undefined,
       target_weight: shippingWt ? Number(shippingWt) : undefined,
       expected_out_date: planData._expectedOutDate || undefined,
-      age_at_entry_days: planData._ageAtEntry != null ? planData._ageAtEntry : undefined,
-      max_dof_to_426: planData._maxDofToLimit != null ? planData._maxDofToLimit : undefined,
-      breakeven_at_426_days: planData._breakevenAtLimit != null ? planData._breakevenAtLimit : undefined,
-      breakeven_weight_at_426: planData._weightAtLimit != null ? planData._weightAtLimit : undefined,
-      environment: originCity ? `Origin: ${originCity}` : '',
+      environment: originCity ? `Origin: ${originCity}${mileageResult ? ` | ${mileageResult.finalBillingMiles} billing mi` : ''}` : '',
       additional_context: additionalContext,
       ration_program: planData.ration_program || '',
       vaccination_schedule: planData.vaccination_schedule || '',
@@ -551,7 +505,6 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
     setFocus(saved.focus || 'balanced');
     setIntakeDate(saved.intake_date || '');
     setPurchasePrice(saved.purchase_price_per_unit ? String(saved.purchase_price_per_unit) : '');
-    setAgeAtEntryDays(saved.age_at_entry_days ? String(saved.age_at_entry_days) : '');
     setDaysOnFeed(saved.days_on_feed ? String(saved.days_on_feed) : '');
     setShippingWt(saved.target_weight ? String(saved.target_weight) : '');
     setAdditionalContext(saved.additional_context || '');
@@ -823,72 +776,101 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
           </div>
         </div>
 
-        {/* Origin / Transit */}
+        {/* Origin / Multi-Source Mileage Engine */}
         <div>
           <h4 className="font-bebas text-foreground text-base mb-3 flex items-center gap-2">
-            <Truck className="w-4 h-4 text-primary" /> ORIGIN & TRANSIT
+            <Truck className="w-4 h-4 text-primary" /> ORIGIN & MULTI-SOURCE MILEAGE
           </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Cattle Origin (City, State)</label>
-              <div className="flex gap-2">
+          <div className="space-y-3">
+            {/* Origin input */}
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="text-xs text-muted-foreground mb-1 block">Cattle Origin (City, State)</label>
                 <input
                   placeholder="e.g. Dodge City, KS"
-                  className="flex-1 bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                  className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
                   value={originCity}
-                  onChange={e => {
-                    setOriginCity(e.target.value);
-                    setTransitMiles(null); setTransitHours(null); setTransitShrink(null);
-                  }}
+                  onChange={e => { setOriginCity(e.target.value); setMileageResult(null); }}
                 />
+              </div>
+              <div className="flex items-end">
                 <button
                   onClick={computeTransit}
-                  disabled={geocoding || !originCity.trim()}
-                  className="px-3 py-2 bg-primary text-primary-foreground rounded-md text-xs font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors whitespace-nowrap"
+                  disabled={calculatingMiles || !originCity.trim()}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-xs font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors whitespace-nowrap"
                 >
-                  {geocoding ? '...' : 'Calculate'}
+                  {calculatingMiles ? '⟳ Calculating...' : 'Calculate Miles'}
                 </button>
               </div>
             </div>
 
-            {/* Transit results */}
-            {transitMiles != null && (
-              <>
-                <div className="flex items-center gap-4 text-sm col-span-1 md:col-span-1">
-                  <div className="bg-primary/10 border border-primary/20 rounded-lg px-3 py-2 text-center">
-                    <div className="font-bebas text-xl text-primary">{transitMiles} mi</div>
-                    <div className="text-xs text-muted-foreground">Road Distance</div>
+            {/* Multi-source results */}
+            {mileageResult && (
+              <div className="space-y-2">
+                {/* Source breakdown */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                  <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-3">
+                    <div className="text-blue-400 font-medium mb-1">📍 Google Maps Routes</div>
+                    <div className="text-muted-foreground mb-1">
+                      {mileageResult.googleRoutes.map((m, i) => (
+                        <span key={i} className="mr-2">Route {i+1}: <span className="text-foreground">{m} mi</span></span>
+                      ))}
+                    </div>
+                    <div className="font-bebas text-lg text-blue-400">{mileageResult.googleAvgMiles} mi avg</div>
                   </div>
-                  <div className="bg-card border border-border rounded-lg px-3 py-2 text-center">
-                    <div className="font-bebas text-xl text-foreground">{transitHours?.toFixed(1)} hrs</div>
-                    <div className="text-xs text-muted-foreground">Est. TOA @ {AVG_SPEED_MPH} mph</div>
+                  <div className="bg-orange-500/5 border border-orange-500/20 rounded-lg p-3">
+                    <div className="text-orange-400 font-medium mb-1">🗺️ Trucker Path Estimate</div>
+                    <div className="text-muted-foreground text-xs mb-1">Truck-optimized routing (weight limits, bridges)</div>
+                    <div className="font-bebas text-lg text-orange-400">{mileageResult.truckerPathMiles} mi</div>
                   </div>
-                  <div className={`border rounded-lg px-3 py-2 text-center ${transitShrink >= 4 ? 'bg-danger/10 border-danger/30' : transitShrink >= 3 ? 'bg-warning/10 border-warning/30' : 'bg-success/10 border-success/30'}`}>
-                    <div className={`font-bebas text-xl ${transitShrink >= 4 ? 'text-danger' : transitShrink >= 3 ? 'text-warning' : 'text-success'}`}>{transitShrink}%</div>
-                    <div className="text-xs text-muted-foreground">Est. Shrink</div>
+                  <div className="bg-primary/10 border border-primary/30 rounded-lg p-3">
+                    <div className="text-primary font-medium mb-1">⚖️ Final Billing Miles</div>
+                    <div className="text-muted-foreground text-xs mb-1">Avg of both sources — used for all costs</div>
+                    <div className="font-bebas text-2xl text-primary">{mileageResult.finalBillingMiles} mi</div>
                   </div>
                 </div>
-              </>
-            )}
 
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">
-                Shrink % Override <span className="text-primary">(leave blank to use calculated)</span>
-              </label>
-              <input type="number" step="0.1" placeholder={transitShrink ? `Auto: ${transitShrink}%` : 'e.g. 3.5'}
-                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
-                value={shrinkOverride} onChange={e => setShrinkOverride(e.target.value)} />
-            </div>
+                {/* ETA + Shrink + Stress */}
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="bg-card border border-border rounded-lg p-2 text-center">
+                    <div className="text-muted-foreground">ETA Range</div>
+                    <div className="font-bebas text-base text-foreground">{mileageResult.etaMinHrs}–{mileageResult.etaMaxHrs} hrs</div>
+                    <div className="text-muted-foreground/70">{TRUCK_MPH_MIN}–{TRUCK_MPH_MAX} mph avg</div>
+                  </div>
+                  <div className={`border rounded-lg p-2 text-center ${effectiveShrink >= 4 ? 'bg-danger/10 border-danger/30' : effectiveShrink >= 3 ? 'bg-warning/10 border-warning/30' : 'bg-success/10 border-success/30'}`}>
+                    <div className="text-muted-foreground">Shrink %</div>
+                    <div className={`font-bebas text-base ${effectiveShrink >= 4 ? 'text-danger' : effectiveShrink >= 3 ? 'text-warning' : 'text-success'}`}>{effectiveShrink}%</div>
+                    <div className="text-muted-foreground/70">{shrinkOverride ? 'manual' : 'auto'}</div>
+                  </div>
+                  <div className={`border rounded-lg p-2 text-center ${mileageResult.stressLevel === 'HIGH' ? 'bg-danger/10 border-danger/30' : mileageResult.stressLevel === 'MODERATE' ? 'bg-warning/10 border-warning/30' : 'bg-success/10 border-success/30'}`}>
+                    <div className="text-muted-foreground">Stress</div>
+                    <div className={`font-bebas text-base ${mileageResult.stressLevel === 'HIGH' ? 'text-danger' : mileageResult.stressLevel === 'MODERATE' ? 'text-warning' : 'text-success'}`}>{mileageResult.stressLevel}</div>
+                    <div className="text-muted-foreground/70">transit</div>
+                  </div>
+                </div>
 
-            {transitMiles != null && (
-              <div className={`md:col-span-2 px-3 py-2 rounded-lg border text-xs ${transitMiles > 600 ? 'bg-danger/10 border-danger/30 text-danger' : transitMiles > 250 ? 'bg-warning/10 border-warning/30 text-warning' : 'bg-success/10 border-success/30 text-success'}`}>
-                {transitMiles > 600
-                  ? '⚠ HIGH STRESS HAUL (>600 mi) — Extended receiving protocol, BRD metaphylaxis consideration, 28-day monitoring window'
-                  : transitMiles > 250
-                    ? '⚠ MODERATE HAUL (250–600 mi) — Standard BRD protocol, enhanced monitoring week 1–2'
-                    : '✓ SHORT HAUL (<250 mi) — Low transit stress, normal receiving protocol'}
+                {/* Stress protocol banner */}
+                <div className={`px-3 py-2 rounded-lg border text-xs font-medium ${mileageResult.stressLevel === 'HIGH' ? 'bg-danger/10 border-danger/30 text-danger' : mileageResult.stressLevel === 'MODERATE' ? 'bg-warning/10 border-warning/30 text-warning' : 'bg-success/10 border-success/30 text-success'}`}>
+                  {mileageResult.stressLevel === 'HIGH'
+                    ? '⚠ HIGH STRESS HAUL (>600 mi) — Extended receiving protocol, metaphylaxis consideration, 28-day BRD monitoring'
+                    : mileageResult.stressLevel === 'MODERATE'
+                      ? '⚠ MODERATE HAUL (250–600 mi) — Standard BRD protocol, enhanced monitoring week 1–2'
+                      : '✓ SHORT HAUL (<250 mi) — Low transit stress, normal receiving protocol'}
+                </div>
               </div>
             )}
+
+            {/* Shrink override */}
+            <div className="flex gap-3 items-end">
+              <div className="flex-1">
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  Shrink % Override <span className="text-primary">(blank = auto from billing miles)</span>
+                </label>
+                <input type="number" step="0.1" placeholder={mileageResult ? `Auto: ${mileageResult.shrinkPct}%` : 'e.g. 3.5'}
+                  className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                  value={shrinkOverride} onChange={e => setShrinkOverride(e.target.value)} />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -945,12 +927,6 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
               <input type="date" className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
                 value={intakeDate} onChange={e => setIntakeDate(e.target.value)} />
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Age at Entry (days)</label>
-              <input type="number" placeholder="e.g. 300"
-                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
-                value={ageAtEntryDays} onChange={e => setAgeAtEntryDays(e.target.value)} />
-            </div>
           </div>
         </div>
 
@@ -963,12 +939,14 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">
                 Haul In Miles
-                {transitMiles && <span className="text-primary ml-1">(auto: {transitMiles} mi)</span>}
+                {mileageResult && <span className="text-primary ml-1">← auto: {mileageResult.finalBillingMiles} billing mi</span>}
               </label>
               <input type="number" step={10}
-                placeholder={transitMiles ? `Auto: ${transitMiles} mi` : '300'}
-                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
-                value={truckMilesIn} onChange={e => setTruckMilesIn(e.target.value)} />
+                placeholder={mileageResult ? `${mileageResult.finalBillingMiles} mi (billing)` : 'Run mileage calc above'}
+                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground bg-secondary/30 cursor-not-allowed"
+                value={mileageResult ? mileageResult.finalBillingMiles : ''}
+                readOnly
+              />
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Haul Out Miles</label>
@@ -992,9 +970,9 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
           </div>
           <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-2">
-              <div className="text-muted-foreground">Freight In ({haulInMiles} mi)</div>
+              <div className="text-muted-foreground">Freight In ({haulInMiles} billing mi)</div>
               <div className="font-bebas text-lg text-primary">${autoFreightIn.toFixed(2)}/hd</div>
-              <div className="text-muted-foreground/70">${freightInResult.ratePerMile.toFixed(2)}/mi | Driver ${freightInResult.driverPayPerLoad.toFixed(0)}</div>
+              <div className="text-muted-foreground/70">${freightInResult.ratePerMile.toFixed(2)}/mi | Driver ${freightInResult.driverPayPerLoad.toFixed(0)}/load</div>
             </div>
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-2">
               <div className="text-muted-foreground">Freight Out ({haulOutMiles} mi)</div>
@@ -1064,45 +1042,37 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
             </div>
           )}
 
-          {/* USDA / Date cards */}
-          {(plan._expectedOutDate || plan._breakevenAtLimit != null) && (
-            <div className="space-y-2">
-              {plan._usdaLimit && (
-                <div className={`flex flex-wrap items-center gap-2 px-4 py-2 rounded-lg border text-xs font-medium ${plan._ageAtEntry && (plan._ageAtEntry + (parseInt(daysOnFeed) || 0)) > plan._usdaLimit.days ? 'bg-danger/10 border-danger/30 text-danger' : 'bg-success/10 border-success/30 text-success'}`}>
-                  <span>USDA BQA:</span>
-                  <span className="font-bebas">{plan._usdaLimit.label}</span>
-                  <span>| Max {plan._usdaLimit.months} mo ({plan._usdaLimit.days} days) for {plan._usdaLimit.grade}</span>
-                  {plan._ageAtEntry && (plan._ageAtEntry + (parseInt(daysOnFeed) || 0)) > plan._usdaLimit.days
-                    ? <span className="ml-auto">⚠ Exceeds limit</span>
-                    : <span className="ml-auto">✓ Within limit</span>}
+          {/* USDA Weight Compliance + Expected Out Date */}
+          {(plan._expectedOutDate || plan._usdaLimit) && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {plan._expectedOutDate && (
+                <div className="bg-card border border-border rounded-xl p-4 text-center">
+                  <div className="font-bebas text-xl text-primary">{plan._expectedOutDate}</div>
+                  <div className="text-xs text-muted-foreground">Expected Out Date</div>
                 </div>
               )}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {plan._expectedOutDate && (
+              {plan._usdaLimit && (
+                <div className={`border rounded-xl p-4 text-center ${plan._weightCompliant === false ? 'bg-danger/10 border-danger/30' : 'bg-success/10 border-success/30'}`}>
+                  <div className={`font-bebas text-xl ${plan._weightCompliant === false ? 'text-danger' : 'text-success'}`}>
+                    {plan._usdaLimit.grade}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {plan._weightCompliant === false ? `⚠ Over ${plan._gradeMaxWt} lbs` : '✓ Weight compliant'}
+                  </div>
+                </div>
+              )}
+              {plan._mileageResult && (
+                <>
+                  <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 text-center">
+                    <div className="font-bebas text-xl text-primary">{plan._mileageResult.finalBillingMiles} mi</div>
+                    <div className="text-xs text-muted-foreground">Billing Miles</div>
+                  </div>
                   <div className="bg-card border border-border rounded-xl p-4 text-center">
-                    <div className="font-bebas text-xl text-primary">{plan._expectedOutDate}</div>
-                    <div className="text-xs text-muted-foreground">Expected Out Date</div>
+                    <div className="font-bebas text-xl text-foreground">{plan._mileageResult.etaMinHrs}–{plan._mileageResult.etaMaxHrs} hrs</div>
+                    <div className="text-xs text-muted-foreground">ETA ({TRUCK_MPH_MIN}–{TRUCK_MPH_MAX} mph)</div>
                   </div>
-                )}
-                {plan._maxDofToLimit != null && plan._usdaLimit && (
-                  <div className={`bg-card border rounded-xl p-4 text-center ${plan._maxDofToLimit < (parseInt(daysOnFeed) || 0) ? 'border-danger/40' : 'border-border'}`}>
-                    <div className={`font-bebas text-xl ${plan._maxDofToLimit < (parseInt(daysOnFeed) || 0) ? 'text-danger' : 'text-success'}`}>{plan._maxDofToLimit} days</div>
-                    <div className="text-xs text-muted-foreground">Max DOF — {plan._usdaLimit.grade}</div>
-                  </div>
-                )}
-                {plan._weightAtLimit != null && (
-                  <div className="bg-card border border-border rounded-xl p-4 text-center">
-                    <div className="font-bebas text-xl text-amber-400">{plan._weightAtLimit} lbs</div>
-                    <div className="text-xs text-muted-foreground">Wt at Age Limit</div>
-                  </div>
-                )}
-                {plan._breakevenAtLimit != null && plan._usdaLimit && (
-                  <div className="bg-card border border-border rounded-xl p-4 text-center">
-                    <div className="font-bebas text-xl text-warning">${plan._breakevenAtLimit}/cwt</div>
-                    <div className="text-xs text-muted-foreground">BE at {plan._usdaLimit.grade} Limit</div>
-                  </div>
-                )}
-              </div>
+                </>
+              )}
             </div>
           )}
 
