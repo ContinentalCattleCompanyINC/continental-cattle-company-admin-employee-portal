@@ -14,55 +14,233 @@
       "type": "number",
       "description": "Feeder Cattle futures $/cwt"
     },
+    "wheat_futures": {
+      "type": "number",
+      "description": "Wheat futures $/cwt"
+    },
     "corn_price": {
       "type": "number",
-      "description": "Corn $/bu"
+      "description": "Corn cash price $/cwt"
     },
     "sbm_price": {
       "type": "number",
-      "description": "Soybean Meal $/ton"
+      "description": "Soybean meal price $/ton"
     },
     "choice_cutout": {
       "type": "number",
-      "description": "Choice cutout $/cwt"
+      "description": "USDA Choice cutout $/cwt"
     },
     "select_cutout": {
       "type": "number",
-      "description": "Select cutout $/cwt"
+      "description": "USDA Select cutout $/cwt"
     },
     "prime_cutout": {
       "type": "number",
-      "description": "Prime cutout $/cwt"
+      "description": "USDA Prime cutout $/cwt"
     },
-    "trim_90s": {
-      "type": "number",
-      "description": "90s trim $/lb"
+    "barge_rates": {
+      "type": "object",
+      "properties": {
+        "locations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "rate_per_ton": {
+                "type": "number"
+              },
+              "change_percent": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "weekly_average": {
+          "type": "number"
+        },
+        "monthly_average": {
+          "type": "number"
+        },
+        "year_ago_average": {
+          "type": "number"
+        },
+        "trend": {
+          "type": "string"
+        },
+        "river_level_impact": {
+          "type": "string"
+        },
+        "last_updated": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
     },
-    "trim_50s": {
-      "type": "number",
-      "description": "50s trim $/lb"
+    "river_conditions": {
+      "type": "object",
+      "properties": {
+        "gauges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "location": {
+                "type": "string"
+              },
+              "level_ft": {
+                "type": "number"
+              },
+              "status": {
+                "type": "string"
+              },
+              "flow_cfs": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "navigation_status": {
+          "type": "string"
+        },
+        "low_water_restrictions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "lock_delays_minutes": {
+          "type": "number"
+        },
+        "weather_impact": {
+          "type": "string"
+        },
+        "forecast_7day": {
+          "type": "string"
+        }
+      }
     },
-    "basis_southern_plains": {
-      "type": "number",
-      "description": "Basis Southern Plains $/cwt"
+    "market_analysis": {
+      "type": "object",
+      "properties": {
+        "barge_trends": {
+          "type": "object",
+          "properties": {
+            "trend": {
+              "type": "string"
+            },
+            "change_percent": {
+              "type": "string"
+            },
+            "recommendation": {
+              "type": "string"
+            }
+          }
+        },
+        "basis_levels": {
+          "type": "object",
+          "properties": {
+            "corn": {
+              "type": "object",
+              "properties": {
+                "cash_avg": {
+                  "type": "number"
+                },
+                "futures": {
+                  "type": "number"
+                },
+                "basis": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                }
+              }
+            },
+            "regional_variation": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "location": {
+                    "type": "string"
+                  },
+                  "corn_basis": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "freight_efficiency": {
+          "type": "object",
+          "properties": {
+            "efficiency_percent": {
+              "type": "string"
+            },
+            "river_status": {
+              "type": "string"
+            },
+            "delay_factor": {
+              "type": "string"
+            },
+            "recommendation": {
+              "type": "string"
+            }
+          }
+        },
+        "market_signals": {
+          "type": "object",
+          "properties": {
+            "signals": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "signal": {
+                    "type": "string"
+                  },
+                  "strength": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "overall_sentiment": {
+              "type": "string"
+            },
+            "action_items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
     },
-    "import_volume": {
+    "data_source": {
       "type": "string",
       "enum": [
-        "high",
-        "normal",
-        "low"
+        "live_api",
+        "manual_entry",
+        "cached"
       ],
-      "default": "normal"
+      "default": "manual_entry"
     },
-    "export_volume": {
+    "last_synced": {
       "type": "string",
-      "enum": [
-        "high",
-        "normal",
-        "low"
-      ],
-      "default": "normal"
+      "format": "date-time",
+      "description": "Last automated sync timestamp"
     },
     "notes": {
       "type": "string"

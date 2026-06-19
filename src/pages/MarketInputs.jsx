@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import SectionHeader from '@/components/SectionHeader';
 import { format } from 'date-fns';
-import { Save, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
+import { Save, TrendingUp, TrendingDown, RefreshCw, Database, Train, Wheat } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRealtimeSync, useAutoRefetch } from '@/hooks/useRealtimeSync';
 import {
@@ -45,8 +45,12 @@ export default function MarketInputsPage() {
     queryFn: () => base44.entities.MarketInputs.list('-date', 10),
     initialData: [],
     staleTime: 1000,
-    refetchInterval: 3000,
+    refetchInterval: 900000, // 15 minutes for live data
   });
+
+  const latestData = history[0];
+  const isLive = latestData?.data_source === 'live_api';
+  const lastSynced = latestData?.last_synced;
 
   // Real-time sync
   useRealtimeSync('MarketInputs', () => {
@@ -88,22 +92,53 @@ export default function MarketInputsPage() {
 
       {/* Live Data Sources */}
       <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Database className="w-4 h-4 text-success" />
+            <span className="text-sm font-medium text-success">REAL-TIME DATA FEED</span>
+            {isLive && (
+              <span className="text-xs bg-success/15 text-success border border-success/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span className="w-2 h-2 bg-success rounded-full animate-pulse" />
+                LIVE
+              </span>
+            )}
+          </div>
+          {lastSynced && (
+            <div className="text-xs text-muted-foreground">
+              Last synced: {new Date(lastSynced).toLocaleString('en-US', { 
+                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' 
+              })}
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-          <div>
-            <div className="text-muted-foreground">LC/GF Futures</div>
-            <div className="font-medium text-success">CME Globex Live</div>
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-3 h-3 text-primary" />
+            <div>
+              <div className="text-muted-foreground">Grain Futures</div>
+              <div className="font-medium text-success">CME Live + USDA</div>
+            </div>
           </div>
-          <div>
-            <div className="text-muted-foreground">Boxed Beef Cutouts</div>
-            <div className="font-medium text-success">USDA LMR Live</div>
+          <div className="flex items-center gap-2">
+            <Train className="w-3 h-3 text-primary" />
+            <div>
+              <div className="text-muted-foreground">Barge Rates</div>
+              <div className="font-medium text-success">USDA AgTransport</div>
+            </div>
           </div>
-          <div>
-            <div className="text-muted-foreground">Corn & Feed Prices</div>
-            <div className="font-medium text-success">CME Live</div>
+          <div className="flex items-center gap-2">
+            <Wheat className="w-3 h-3 text-primary" />
+            <div>
+              <div className="text-muted-foreground">Cash Grain</div>
+              <div className="font-medium text-success">Regional Elevators</div>
+            </div>
           </div>
-          <div>
-            <div className="text-muted-foreground">Refresh Frequency</div>
-            <div className="font-medium text-success">Every 5 Minutes</div>
+          <div className="flex items-center gap-2">
+            <RefreshCw className="w-3 h-3 text-success animate-spin" />
+            <div>
+              <div className="text-muted-foreground">Auto-Sync</div>
+              <div className="font-medium text-success">Every 15 Minutes</div>
+            </div>
           </div>
         </div>
       </div>
