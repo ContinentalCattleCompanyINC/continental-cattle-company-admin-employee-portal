@@ -348,6 +348,14 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
     }
     setLoading(true);
     setPlan(null);
+
+    // Always generate data-driven plan instantly
+    const fallback = generateFallbackPlan();
+    setPlan({ ...fallback, _fallback: true });
+    setLoading(false);
+    toast.success('Plan generated from your data');
+
+    // Silently try to upgrade with AI in the background
     try {
       const result = await base44.integrations.Core.InvokeLLM({
         prompt: buildPrompt(),
@@ -368,13 +376,10 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
         }
       });
       setPlan(result);
-      toast.success('AI plan generated');
-    } catch (err) {
-      const fallback = generateFallbackPlan();
-      setPlan({ ...fallback, _fallback: true });
-      toast.info('AI unavailable — showing data-driven analysis from your records');
+      toast.success('Plan upgraded with AI analysis');
+    } catch (_) {
+      // Keep the data-driven plan already shown — no error needed
     }
-    setLoading(false);
   };
 
   return (
@@ -482,7 +487,7 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
           {loading ? 'GENERATING AI PLAN...' : 'GENERATE AI PLAN'}
         </button>
         {loading && (
-          <p className="text-xs text-muted-foreground">Analyzing lot data, market conditions, feed costs, health history, futures — this takes 15–30 seconds...</p>
+          <p className="text-xs text-muted-foreground">Generating plan from your data instantly...</p>
         )}
       </div>
 
