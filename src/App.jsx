@@ -53,6 +53,7 @@ import FeedlotOps from './pages/FeedlotOps';
 import LotPerformance from './pages/LotPerformance';
 import MyListings from './pages/MyListings';
 import AttorneyPortal from './pages/AttorneyPortal';
+import PlatformDocumentation from './pages/PlatformDocumentation';
 import PendingApprovalScreen from './components/PendingApprovalScreen';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -147,6 +148,7 @@ const AppRoutes = () => {
           <Route path="/load-board" element={<RoleGate requiredRole={['hauler', 'admin', 'super_admin']}><LoadBoard /></RoleGate>} />
           <Route path="/my-listings" element={<RoleGate requiredRole={['seller', 'admin', 'super_admin']}><MyListings /></RoleGate>} />
           <Route path="/attorney-portal" element={<RoleGate requiredRole={['attorney_cpa', 'admin', 'super_admin', 'accountant']}><AttorneyPortal /></RoleGate>} />
+          <Route path="/platform-docs" element={<RoleGate requiredRole="admin"><PlatformDocumentation /></RoleGate>} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

@@ -45,6 +45,7 @@ const navItemsConfig = [
   { label: 'Master Document', icon: BookOpen, path: '/document', roles: ['super_admin', 'admin', 'office_manager', 'accountant', 'attorney_cpa'] },
   { label: 'Approvals', icon: ShieldAlert, path: '/approvals', roles: ['super_admin', 'admin'] },
   { label: 'Sync Monitor', icon: Zap, path: '/sync-monitor', roles: ['super_admin', 'admin'] },
+  { label: 'Platform Docs', icon: BookOpen, path: '/platform-docs', roles: ['super_admin', 'admin'] },
   { label: 'Settings', icon: Settings, path: '/settings', roles: ['super_admin', 'admin'] },
   // External portals
   { label: 'Live Marketplace', icon: ShoppingCart, path: '/marketplace', roles: ['buyer', 'super_admin', 'admin', 'manager'] },
