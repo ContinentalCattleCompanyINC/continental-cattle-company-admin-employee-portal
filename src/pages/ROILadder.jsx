@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import SectionHeader from '@/components/SectionHeader';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { getAllCombos } from '@/lib/cattleConfig';
+import { getAllCombos, getUsdaLimit, getTargetGrade, isDairy, isBeefDairy } from '@/lib/cattleConfig';
 import { quickFreightPerHead } from '@/lib/truckingConfig';
 
 const CLASSES = getAllCombos();
@@ -62,6 +62,11 @@ export default function ROILadder() {
   const [freightMilesOut, setFreightMilesOut] = useState(200);
   const [headOnLoad, setHeadOnLoad]           = useState(40);
   const [dieselLadder, setDieselLadder]       = useState(3.60);
+  
+  // USDA weight-based compliance
+  const usdaLimit = getUsdaLimit(cls?.breedType, 'balanced');
+  const targetGrade = getTargetGrade(cls?.breedType);
+  const weightCompliant = (cls?.maxWeight || 1400) <= usdaLimit.maxWeight;
 
   const freightInPerHead  = quickFreightPerHead(freightMilesIn,  headOnLoad, dieselLadder);
   const freightOutPerHead = quickFreightPerHead(freightMilesOut, headOnLoad, dieselLadder);
@@ -153,6 +158,7 @@ export default function ROILadder() {
           <span>Grid Adj: <span className={cls.gridAdj >= 0 ? 'text-success' : 'text-danger'}>{cls.gridAdj >= 0 ? '+' : ''}{cls.gridAdj}</span></span>
           <span>Effective LC: <span className="text-primary">${(lcFutures + basis + cls.gridAdj).toFixed(2)}/cwt</span></span>
           <span>Freight: <span className="text-warning">${totalFreightPerHead.toFixed(2)}/hd included</span></span>
+          <span>USDA: <span className={weightCompliant ? 'text-success' : 'text-danger'}>{targetGrade} {weightCompliant ? '✓' : '⚠ Over ' + usdaLimit.maxWeight + ' lbs'}</span></span>
           {bestStep && <span>Best ROI Step: <span className="text-success">{bestStep.startWeight}→{bestStep.endWeight} lb ({bestStep.roi}%)</span></span>}
         </div>
       </div>

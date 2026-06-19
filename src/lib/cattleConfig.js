@@ -81,21 +81,21 @@ export function isFullBeef(breedType) {
 }
 
 /**
- * USDA BQA age limit based on breed type and target grade
- * 100% dairy → Select ≤30 months
- * Beef × Dairy → Choice ≤42 months
- * English/Crossbred Beef → Prime/Choice ≤42 months
+ * USDA BQA weight-based compliance (age-in-days deprecated)
+ * 100% dairy → Select grade, max 1350 lbs
+ * Beef × Dairy → Choice grade, max 1400 lbs
+ * English/Crossbred Beef → Choice/Prime grade, max 1500 lbs
  */
-export const USDA_AGE_LIMITS = {
-  select:   { days: 912,  months: 30, label: 'Select (≤30 mo)',   grade: 'Select' },
-  choice:   { days: 1278, months: 42, label: 'Choice (≤42 mo)',   grade: 'Choice' },
-  prime:    { days: 1278, months: 42, label: 'Prime (≤42 mo)',    grade: 'Prime' },
+export const USDA_WEIGHT_LIMITS = {
+  select:   { maxWeight: 1350, label: 'Select (≤1350 lbs)',   grade: 'Select' },
+  choice:   { maxWeight: 1400, label: 'Choice (≤1400 lbs)',   grade: 'Choice' },
+  prime:    { maxWeight: 1500, label: 'Prime (≤1500 lbs)',    grade: 'Prime' },
 };
 
 export function getUsdaLimit(breedType, focus) {
-  if (isDairy(breedType)) return USDA_AGE_LIMITS.select;
-  if (focus === 'grade') return USDA_AGE_LIMITS.prime;
-  return USDA_AGE_LIMITS.choice;
+  if (isDairy(breedType)) return USDA_WEIGHT_LIMITS.select;
+  if (focus === 'grade') return USDA_WEIGHT_LIMITS.prime;
+  return USDA_WEIGHT_LIMITS.choice;
 }
 
 /** Target grade based on breed type */

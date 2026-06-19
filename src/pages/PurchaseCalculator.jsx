@@ -5,6 +5,7 @@ import SectionHeader from '@/components/SectionHeader';
 import { TrendingUp, TrendingDown, Truck } from 'lucide-react';
 import { format } from 'date-fns';
 import { freightCostPerHead, TRUCKING_DEFAULTS } from '@/lib/truckingConfig';
+import { getUsdaLimit, getTargetGrade } from '@/lib/cattleConfig';
 
 export default function PurchaseCalculator() {
   const { data: marketInputs } = useQuery({
@@ -100,6 +101,11 @@ export default function PurchaseCalculator() {
     const profit_per_head = revenue_per_head - total_cost_per_head;
     const roi_percent = (profit_per_head / total_cost_per_head) * 100;
 
+    // USDA weight-based compliance (no age-in-days)
+    const targetGrade = inputs.targetWeight <= 1350 ? 'Choice' : inputs.targetWeight <= 1500 ? 'Prime' : 'Select';
+    const usdaLimit = { maxWeight: inputs.targetWeight <= 1350 ? 1350 : inputs.targetWeight <= 1500 ? 1500 : 1400 };
+    const weightCompliant = inputs.targetWeight <= usdaLimit.maxWeight;
+
     return cattleClasses.map(cattle => {
       const cattle_profit = profit_per_head * (cattle.baseROI > 0 ? cattle.baseROI / 0.22 : 1);
       const cattle_roi = (cattle_profit / total_cost_per_head) * 100;
@@ -125,6 +131,11 @@ export default function PurchaseCalculator() {
       current.roi > best.roi ? current : best
     );
   }, [scenarios]);
+  
+  // USDA weight-based compliance (example for typical finish weight)
+  const usdaLimit = getUsdaLimit('english_beef', 'balanced');
+  const targetGrade = getTargetGrade('english_beef');
+  const weightCompliant = inputs.targetWeight <= usdaLimit.maxWeight;
 
   return (
     <div className="p-6 space-y-6 max-w-6xl">
@@ -265,6 +276,11 @@ export default function PurchaseCalculator() {
 
               <div className="text-xs text-muted-foreground pt-3 border-t border-border">
                 <div className="mb-1">Live Cattle: ${lc}/cwt</div>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded ${weightCompliant ? 'bg-success/15 text-success border border-success/20' : 'bg-danger/15 text-danger border border-danger/20'}`}>
+                    USDA {targetGrade} {weightCompliant ? '✓' : '⚠ Over ' + usdaLimit.maxWeight + ' lbs'}
+                  </span>
+                </div>
                 <div>Date: {format(new Date(), 'MMM d, yyyy')}</div>
               </div>
             </div>
