@@ -72,15 +72,17 @@ export default function AIFeedPlanner() {
   const [additionalContext, setAdditionalContext] = useState('');
 
   // Trucking inputs
+  const [truckMilesIn, setTruckMilesIn]   = useState('300');
   const [truckMilesOut, setTruckMilesOut] = useState('200');
   const [headOnLoad, setHeadOnLoad]       = useState('40');
   const [dieselFeed, setDieselFeed]       = useState('3.60');
 
-  // Origin / multi-source mileage
+  // Origin / auto-calculated logistics
   const [originCity, setOriginCity]       = useState('');
-  const [mileageResult, setMileageResult] = useState(null);  // full result from mileageEngine
-  const [calculatingMiles, setCalculatingMiles] = useState(false);
+  const [mileageResult, setMileageResult] = useState(null);  // full result from backend
+  const [calculatingLogistics, setCalculatingLogistics] = useState(false);
   const [shrinkOverride, setShrinkOverride] = useState('');
+  const [autoFreight, setAutoFreight] = useState(null);  // auto-calculated freight costs
 
   // UI state
   const [loading, setLoading]             = useState(false);
@@ -123,33 +125,40 @@ export default function AIFeedPlanner() {
   const market = marketInputs[0];
 
   // -------------------------------------------------------------------
-  // Multi-source mileage engine
-  // Google Maps (OSRM: 3 route alternatives) avg'd + Trucker Path estimate avg'd = billing miles
+  // AUTO-CALCULATE: Real-time logistics (route, weather, freight, market)
   // -------------------------------------------------------------------
-  const computeTransit = async () => {
+  const calculateLogistics = async () => {
     if (!originCity.trim()) return;
-    setCalculatingMiles(true);
+    setCalculatingLogistics(true);
     try {
-      const result = await computeBillingMiles(originCity);
-      setMileageResult(result);
+      const result = await base44.functions.invoke('fetchRealTimeLogistics', { originCity, lotId: selectedLot });
+      
+      setMileageResult(result.route);
+      setAutoFreight(result.freight);
+      
+      // Auto-populate freight inputs (read-only now)
+      if (result.freight.miles) {
+        // Freight is now fully automated
+      }
+      
       toast.success(
-        `${result.originName} → Shattuck OK: ${result.finalBillingMiles} billing mi | ` +
-        `ETA ${result.etaMinHrs}–${result.etaMaxHrs} hrs | ${result.shrinkPct}% shrink`
+        `✅ ${result.route.origin} → ${result.route.destination}: ${result.route.billingMiles} billing mi | ` +
+        `ETA ${result.route.etaMinHrs}–${result.route.etaMaxHrs} hrs | ` +
+        `Freight $${result.freight.cost_per_head.toFixed(2)}/hd | ` +
+        `${result.route.stressLevel} stress`
       );
     } catch (e) {
-      toast.error('Mileage calculation failed. Check city/state format and try again.');
+      toast.error('Logistics calculation failed. Check city/state format.');
     } finally {
-      setCalculatingMiles(false);
+      setCalculatingLogistics(false);
     }
   };
 
-  // Derived from mileage result
-  const transitMiles  = mileageResult?.finalBillingMiles || null;
+  // Derived from auto-calculated logistics
+  const haulInMiles  = autoFreight?.miles || mileageResult?.billingMiles || parseInt(truckMilesIn) || 300;
   const effectiveShrink = shrinkOverride
     ? parseFloat(shrinkOverride)
-    : (mileageResult?.shrinkPct ?? 3.0);
-
-  const haulInMiles  = transitMiles || 300;
+    : (mileageResult?.shrinkPct || 3.0);
   const haulOutMiles = parseInt(truckMilesOut) || 200;
   const haulHeads    = parseInt(headOnLoad)    || lot?.head_count || 40;
   const haulDiesel   = parseFloat(dieselFeed)  || 3.60;
@@ -795,11 +804,11 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
               </div>
               <div className="flex items-end">
                 <button
-                  onClick={computeTransit}
-                  disabled={calculatingMiles || !originCity.trim()}
+                  onClick={calculateLogistics}
+                  disabled={calculatingLogistics || !originCity.trim()}
                   className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-xs font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors whitespace-nowrap"
                 >
-                  {calculatingMiles ? '⟳ Calculating...' : 'Calculate Miles'}
+                  {calculatingLogistics ? '⟳ Calculating...' : 'Calculate Logistics'}
                 </button>
               </div>
             </div>
@@ -942,9 +951,9 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
                 {mileageResult && <span className="text-primary ml-1">← auto: {mileageResult.finalBillingMiles} billing mi</span>}
               </label>
               <input type="number" step={10}
-                placeholder={mileageResult ? `${mileageResult.finalBillingMiles} mi (billing)` : 'Run mileage calc above'}
+                placeholder={mileageResult ? `${mileageResult.billingMiles} mi (billing)` : 'Enter origin to auto-calculate'}
                 className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground bg-secondary/30 cursor-not-allowed"
-                value={mileageResult ? mileageResult.finalBillingMiles : ''}
+                value={mileageResult ? mileageResult.billingMiles : truckMilesIn}
                 readOnly
               />
             </div>
