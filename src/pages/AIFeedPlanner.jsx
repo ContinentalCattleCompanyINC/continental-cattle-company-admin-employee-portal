@@ -185,6 +185,162 @@ Provide a complete timeline from arrival/processing through market:
 - Any lot-specific concerns based on health event history`;
   };
 
+  const generateFallbackPlan = () => {
+    const l = lot;
+    const mkt = market;
+    const buyWeight = l?.current_weight || l?.purchase_weight || 700;
+    const sellWeight = targetWeight ? Number(targetWeight) : (l?.target_weight || 1250);
+    const gainLbs = Math.max(sellWeight - buyWeight, 0);
+    const dof = daysOnFeed ? Number(daysOnFeed) : Math.round(gainLbs / 2.8);
+    const cog = l?.cog || 0.95;
+    const yardage = l?.yardage || 0.45;
+    const feedCost = gainLbs * cog;
+    const yardageCost = yardage * dof;
+    const healthCostHd = healthProtocols.length > 0
+      ? healthProtocols.reduce((s, p) => s + (p.cost_per_head || 0), 0)
+      : 55;
+    const buyPricePerHead = (l?.purchase_price || 150) / 100 * buyWeight;
+    const totalCostPerHead = buyPricePerHead + feedCost + yardageCost + healthCostHd + 35;
+    const lc = mkt?.lc_futures || 241;
+    const corn = mkt?.corn_price || 4.22;
+    const revenuePerHead = sellWeight * (lc / 100);
+    const profitPerHead = revenuePerHead - totalCostPerHead;
+    const roi = totalCostPerHead > 0 ? (profitPerHead / totalCostPerHead * 100) : 0;
+    const isHolstein = l?.cattle_class?.includes('holstein');
+    const targetGrade = isHolstein ? 'Select / Low Choice' : 'Choice / Prime';
+    const dmiLbs = Math.round(buyWeight * 0.025);
+
+    const feedList = feedProtocols.length > 0
+      ? feedProtocols.map(f => `• ${f.commodity_name}: $${f.cost_per_ton}/ton | TDN ${f.tdn_percent || '—'}% | CP ${f.cp_percent || '—'}% | ${f.daily_intake_head || '—'} lbs DMI/hd/day`).join('\n')
+      : `• Corn (dry-rolled): ~$${(corn * 8.5).toFixed(0)}/ton | TDN 88% | CP 9% | 12–15 lbs/hd/day
+• Alfalfa Hay: ~$220/ton | TDN 58% | CP 18% | 4–6 lbs/hd/day
+• Soybean Meal: ~$${mkt?.sbm_price || 340}/ton | TDN 82% | CP 47% | 1–2 lbs/hd/day
+• Distillers Grains: ~$150/ton | TDN 85% | CP 28% | 5–8 lbs/hd/day
+• Mineral/Vitamin mix: ~$600/ton | 0.25 lbs/hd/day`;
+
+    const healthList = healthProtocols.length > 0
+      ? healthProtocols.map(p => `• ${p.protocol_name} | ${p.cattle_class} | ${p.action} at ${p.timing}${p.product ? ' | Product: ' + p.product : ''}${p.dosage ? ' | ' + p.dosage : ''}${p.cost_per_head ? ' | $' + p.cost_per_head + '/hd' : ''}`).join('\n')
+      : `• Day 0 Processing: IBR-BVD-PI3-BRSV + Mannheimia (Pyramid 5+Presponse HM), 5-way clostridial
+• Day 0: Ivermectin pour-on, Implant (Ralgro or Component E-H)
+• Day 14–21: Booster vaccines (IBR-BVD)
+• Day 60–90: Re-implant (Component T-H or Optaflexx depending on class)
+• Pre-ship: BQA-compliant health check, confirm withdrawal times
+• Est. health cost: $45–$65/hd`;
+
+    const rationProgram = `DATA-DRIVEN RATION PLAN
+${l ? `Lot: ${l.lot_id || l.cattle_class} | ${l.head_count} hd | ${buyWeight} lbs → ${sellWeight} lbs | Stage: ${l.stage}` : 'General program — no specific lot selected'}
+
+AVAILABLE FEED COMMODITIES ON RECORD:
+${feedList}
+
+PHASE 1 — RECEIVING / STARTER (Days 1–21)
+DMI: ${Math.round(dmiLbs * 0.75)} lbs/hd/day | TDN: 68–72% | CP: 14–16%
+• High roughage (35–40%), low-starch adaptation
+• Focus: stress recovery, rumen adaptation
+• Administer receiving medications per health protocol
+• Estimated ADG: 1.5–2.0 lbs/hd/day
+• Est. feed cost: $${(0.75 * dmiLbs * (corn / 56 * 8.5 / 2000 + 0.10)).toFixed(2)}/hd/day
+
+PHASE 2 — GROWER / GROWING (Days 22–${Math.round(dof * 0.55)})
+DMI: ${dmiLbs} lbs/hd/day | TDN: 75–78% | CP: 12–13%
+• Mid-grain ration, reduce hay, add distillers
+• Target ADG: 2.8–3.2 lbs/hd/day
+• Ionophore (Rumensin or Bovatec) added
+• Est. feed cost: $${(dmiLbs * 0.085).toFixed(2)}/hd/day
+
+PHASE 3 — FINISHER (Days ${Math.round(dof * 0.55)}–${dof})
+DMI: ${Math.round(dmiLbs * 1.1)} lbs/hd/day | TDN: 82–86% | CP: 11–12%
+• High-grain (85–90% concentrate), min roughage (1–1.5% BW)
+• Beta-agonist consideration at Day ${dof - 28} (if ${isHolstein ? 'not going export market' : 'grid allows'})
+• Target ADG: 3.5–4.0 lbs/hd/day
+• Est. feed cost: $${(dmiLbs * 1.1 * 0.092).toFixed(2)}/hd/day
+
+BUNK MANAGEMENT:
+• Slick bunk management — empty 0–1x/day at finishing
+• Check water: minimum 2 gal/lb DMI (${Math.round(dmiLbs * 2)} gal/hd/day at peak)
+• Watch for bloat and acidosis indicators, especially in high-grain phase
+
+TOTAL FEED COST ESTIMATE: $${feedCost.toFixed(0)}/hd over ${dof} days ($${(feedCost/dof).toFixed(2)}/hd/day avg)`;
+
+    const vaccinationSchedule = `DATA-DRIVEN HEALTH PROTOCOL
+${l ? `Lot: ${l.lot_id || l.cattle_class} | Cattle Class: ${l.cattle_class}` : 'General BQA-compliant program'}
+
+PROTOCOLS ON RECORD:
+${healthList}
+
+STANDARD BQA TIMELINE (if no specific protocols configured):
+• Day 0 — PROCESSING: Weigh, tag, castrate/implant, dehorn if needed
+  - Respiratory 5-way (IBR, BVD1&2, PI3, BRSV)
+  - 7-way Clostridial (Blackleg, Malignant Edema, etc.)
+  - Parasite control (Dectomax or Ivomec)
+  - Implant: Ralgro or Component E-H (stocker), Synovex S (feedlot)
+  - BQA injection sites: Neck triangle only
+• Day 14–21 — BOOSTERS: IBR-BVD, Haemophilus
+• Day 60–90 — RE-IMPLANT: Component T-H or Revalor-G
+• Day ${dof - 28} — TERMINAL IMPLANT (if applicable): Optaflexx 45, check withdrawal 28 days pre-slaughter
+• Pre-Ship — Health inspection, check withdrawal compliance
+
+ESTIMATED TOTAL HEALTH COST: $${healthCostHd.toFixed(0)}/hd`;
+
+    const econProjection = `ECONOMIC PROJECTION (DATA-DRIVEN)
+${l ? `Lot: ${l.lot_id || l.cattle_class} | Focus: ${FOCUS.find(f => f.value === focus)?.label}` : 'General estimate'}
+
+COST BREAKDOWN:
+• Purchase cost:         $${buyPricePerHead.toFixed(0)}/hd  (${buyWeight} lbs @ $${l?.purchase_price || 150}/cwt)
+• Feed cost:             $${feedCost.toFixed(0)}/hd  (${gainLbs} lb gain @ $${cog}/lb COG)
+• Yardage:               $${yardageCost.toFixed(0)}/hd  ($${yardage}/hd/day × ${dof} days)
+• Health/meds:           $${healthCostHd.toFixed(0)}/hd
+• Freight/misc:          $35/hd (est.)
+─────────────────────────────────────────
+TOTAL COST:              $${totalCostPerHead.toFixed(0)}/hd
+
+REVENUE PROJECTION:
+• Sell weight:           ${sellWeight} lbs/hd
+• LC Futures:            $${lc}/cwt ${mkt?.date ? '(' + mkt.date + ')' : ''}
+• Gross revenue:         $${revenuePerHead.toFixed(0)}/hd
+• Pencil shrink (3%):    -$${(revenuePerHead * 0.03).toFixed(0)}/hd
+• Net revenue:           $${(revenuePerHead * 0.97).toFixed(0)}/hd
+
+NET PROFIT:              $${((revenuePerHead * 0.97) - totalCostPerHead).toFixed(0)}/hd
+ROI:                     ${roi.toFixed(1)}%
+BREAKEVEN:               $${(totalCostPerHead / sellWeight * 100).toFixed(2)}/cwt
+${l?.head_count ? `TOTAL LOT PROFIT:        $${((revenuePerHead * 0.97 - totalCostPerHead) * l.head_count).toFixed(0)}` : ''}
+
+EXPECTED GRADE: ${targetGrade}
+CURRENT MARKET SIGNAL: ${lc > 240 ? '✓ STRONG — premium sell window' : lc > 225 ? '▲ MODERATE — watch basis' : '⚠ WEAK — consider timing'}
+${mkt?.choice_cutout ? `Cutout Spread: $${(mkt.choice_cutout - lc).toFixed(2)}/cwt (${mkt.choice_cutout - lc > 80 ? 'WIDE — packers bidding up' : mkt.choice_cutout - lc > 50 ? 'NORMAL' : 'NARROW — packer margin tight'})` : ''}`;
+
+    const recommendations = `DATA-DRIVEN RECOMMENDATIONS
+Focus: ${FOCUS.find(f => f.value === focus)?.label || 'Balanced'}
+
+TOP PRIORITIES RIGHT NOW:
+${lc > 240 ? '1. ✓ SELL WINDOW OPEN — LC futures strong at $' + lc + '/cwt. Prioritize finishing and marketing ready cattle.' : '1. ⚠ Market below $240 — weigh holding cost vs. current price before committing to sell date.'}
+${corn < 4.50 ? '2. ✓ Corn favorable at $' + corn + '/bu — high-grain finishing ration is cost-effective. Consider locking in feed prices.' : '2. ⚠ Corn elevated at $' + corn + '/bu — evaluate alternative energy sources (distillers, DDG, beet pulp) to protect COG.'}
+${mkt?.sbm_price && mkt.sbm_price > 350 ? '3. ⚠ SBM expensive at $' + mkt.sbm_price + '/ton — reduce protein via cheap amino acid sources (urea, DDG) where possible.' : '3. ✓ SBM manageable — maintain protein levels per protocol.'}
+${gainLbs > 400 ? '4. Plan re-implant at Day ' + Math.round(dof * 0.55) + ' to maximize ADG in finishing phase.' : '4. Monitor bunk daily — adjust delivery to prevent acidosis as cattle approach finishing weights.'}
+5. Track morbidity closely — pull rate >10% signals health protocol review needed.
+${healthEvents.length > 0 ? '6. ⚠ ' + healthEvents.length + ' health events logged — review patterns for recurring diagnosis and adjust treatment protocol.' : '6. ✓ No major health events on record for this lot.'}
+
+OPTIMAL MARKETING TARGET:
+• ${sellWeight} lbs/hd live — ${dof} days on feed
+• Grade target: ${targetGrade}
+• Watch for: ${mkt?.import_volume === 'high' ? '⚠ High import volume — trim/lean prices pressured' : mkt?.export_volume === 'high' ? '✓ Strong export demand — premium cattle in demand' : 'Normal trade conditions'}
+
+NOTE: This is a data-driven analysis generated from your actual lot, market, and protocol data. For AI-generated personalized recommendations, integration credits are required.`;
+
+    return {
+      ration_program: rationProgram,
+      vaccination_schedule: vaccinationSchedule,
+      economic_projection: econProjection,
+      ai_recommendations: recommendations,
+      summary: `${l ? `Lot ${l.lot_id || l.cattle_class} (${l.head_count} hd)` : 'General program'}: Estimated ${roi.toFixed(1)}% ROI with $${profitPerHead.toFixed(0)}/hd projected profit over ${dof} days on feed. Total cost: $${totalCostPerHead.toFixed(0)}/hd. Sell target: ${sellWeight} lbs @ current LC futures of $${lc}/cwt. Grade target: ${targetGrade}. Feed cost of gain: $${cog}/lb using ${feedProtocols.length > 0 ? feedProtocols.length + ' commodities on record' : 'standard TMR blend'}.`,
+      estimated_profit_per_head: Math.round((revenuePerHead * 0.97) - totalCostPerHead),
+      estimated_roi_percent: parseFloat(roi.toFixed(1)),
+      estimated_cost_per_head: Math.round(totalCostPerHead),
+      target_grade: targetGrade,
+    };
+  };
+
   const generatePlan = async () => {
     if (!selectedLot && lots.length > 0) {
       toast.error('Please select a cattle lot');
@@ -192,27 +348,33 @@ Provide a complete timeline from arrival/processing through market:
     }
     setLoading(true);
     setPlan(null);
-    const result = await base44.integrations.Core.InvokeLLM({
-      prompt: buildPrompt(),
-      model: 'claude_sonnet_4_6',
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          ration_program: { type: 'string' },
-          vaccination_schedule: { type: 'string' },
-          economic_projection: { type: 'string' },
-          ai_recommendations: { type: 'string' },
-          summary: { type: 'string', description: 'One paragraph executive summary' },
-          estimated_profit_per_head: { type: 'number' },
-          estimated_roi_percent: { type: 'number' },
-          estimated_cost_per_head: { type: 'number' },
-          target_grade: { type: 'string' },
+    try {
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: buildPrompt(),
+        model: 'claude_sonnet_4_6',
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            ration_program: { type: 'string' },
+            vaccination_schedule: { type: 'string' },
+            economic_projection: { type: 'string' },
+            ai_recommendations: { type: 'string' },
+            summary: { type: 'string', description: 'One paragraph executive summary' },
+            estimated_profit_per_head: { type: 'number' },
+            estimated_roi_percent: { type: 'number' },
+            estimated_cost_per_head: { type: 'number' },
+            target_grade: { type: 'string' },
+          }
         }
-      }
-    });
-    setPlan(result);
+      });
+      setPlan(result);
+      toast.success('AI plan generated');
+    } catch (err) {
+      const fallback = generateFallbackPlan();
+      setPlan({ ...fallback, _fallback: true });
+      toast.info('AI unavailable — showing data-driven analysis from your records');
+    }
     setLoading(false);
-    toast.success('AI plan generated');
   };
 
   return (
@@ -396,7 +558,9 @@ Provide a complete timeline from arrival/processing through market:
           </div>
 
           <p className="text-xs text-muted-foreground text-center pt-2">
-            Generated by AI using live market data, lot performance, and feed commodity costs. Always validate with your nutritionist and veterinarian.
+            {plan._fallback
+              ? '⚡ Data-driven analysis generated from your actual records (AI unavailable). Validate with your nutritionist and veterinarian.'
+              : 'Generated by AI using live market data, lot performance, and feed commodity costs. Always validate with your nutritionist and veterinarian.'}
           </p>
         </div>
       )}

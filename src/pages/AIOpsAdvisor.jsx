@@ -132,34 +132,211 @@ List the top 5-7 things that need attention RIGHT NOW — critical issues, urgen
 Prioritized roadmap with specific actions, responsible parties, and expected outcomes.`;
   };
 
+  const generateFallbackReport = () => {
+    const mkt = market[0];
+    const activeLots = lots;
+    const totalHead = activeLots.reduce((s, l) => s + (l.head_count || 0), 0);
+    const openTickets = tickets.filter(t => t.status !== 'completed');
+    const urgentTickets = openTickets.filter(t => t.priority === 'urgent');
+    const highTickets = openTickets.filter(t => t.priority === 'high');
+    const activeStaff = staff.filter(s => s.status === 'active');
+    const lc = mkt?.lc_futures || 241;
+    const choice = mkt?.choice_cutout || 324;
+    const corn = mkt?.corn_price || 4.22;
+    const spread = choice - lc;
+    const recentPulls = healthEvents.filter(e => e.event_type === 'pull');
+    const recentDeaths = healthEvents.filter(e => e.event_type === 'death');
+    const morbidityRate = totalHead > 0 ? ((recentPulls.reduce((s, e) => s + (e.head_affected || 0), 0) / totalHead) * 100).toFixed(1) : 0;
+
+    const deptMap = activeStaff.reduce((acc, s) => { acc[s.department] = (acc[s.department] || 0) + 1; return acc; }, {});
+    const criticalRisks = [];
+    if (urgentTickets.length > 0) criticalRisks.push(`${urgentTickets.length} urgent maintenance tickets`);
+    if (Number(morbidityRate) > 10) criticalRisks.push(`High morbidity rate: ${morbidityRate}%`);
+    if (recentDeaths.length > 0) criticalRisks.push(`${recentDeaths.reduce((s, e) => s + (e.head_affected || 0), 0)} head deaths logged`);
+    if (lc < 225) criticalRisks.push('LC Futures below $225 — margin compression risk');
+    if (corn > 5.00) criticalRisks.push('Corn above $5.00 — COG pressure');
+
+    const healthScore = Math.max(20, Math.min(100, 100
+      - (urgentTickets.length * 8)
+      - (highTickets.length * 3)
+      - (Number(morbidityRate) > 10 ? 15 : Number(morbidityRate) > 5 ? 7 : 0)
+      - (lc < 225 ? 12 : lc < 235 ? 5 : 0)
+      - (corn > 5 ? 8 : corn > 4.5 ? 3 : 0)
+      + (lc > 240 ? 5 : 0)
+      + (spread > 80 ? 5 : 0)
+    ));
+
+    const immediate = [
+      urgentTickets.length > 0 ? `🔴 URGENT: ${urgentTickets.length} maintenance ticket(s) require immediate attention: ${urgentTickets.map(t => t.title + ' @' + (t.entity || t.location || '?')).join(', ')}` : null,
+      recentDeaths.length > 0 ? `🔴 ${recentDeaths.reduce((s, e) => s + (e.head_affected || 0), 0)} head deaths in recent events — review health protocols immediately` : null,
+      Number(morbidityRate) > 10 ? `🔴 Morbidity rate at ${morbidityRate}% — exceeds 10% threshold. Pull rate review and treatment protocol adjustment required.` : null,
+      lc > 240 ? `✅ LC Futures at $${lc}/cwt — PRIME SELL WINDOW. Review which lots are at target weight and schedule marketing.` : `⚠️ LC at $${lc}/cwt — monitor for sell timing, target above $235 for optimal margins.`,
+      spread > 80 ? `✅ Cutout spread $${spread.toFixed(0)}/cwt — packers bidding up, favorable for finished cattle.` : `⚠️ Cutout spread $${spread.toFixed(0)}/cwt — tighter than optimal, monitor weekly.`,
+      highTickets.length > 0 ? `⚠️ ${highTickets.length} high-priority maintenance items need scheduling this week.` : null,
+      feedOrders.filter(f => f.status === 'scheduled').length === 0 && activeLots.length > 0 ? `⚠️ No scheduled feed orders found — verify feed delivery pipeline for ${activeLots.length} active lots.` : null,
+    ].filter(Boolean).join('\n\n');
+
+    const staffingReport = `STAFFING OVERVIEW (DATA FROM DIRECTORY)
+Total Staff On Record: ${staff.length} | Active: ${activeStaff.length}
+
+BY DEPARTMENT:
+${Object.entries(deptMap).map(([dept, count]) => `• ${dept}: ${count} staff`).join('\n') || '• No department data entered yet'}
+
+STAFFING GAP ANALYSIS:
+• Trucking/Hauling: ${deptMap['Trucking'] || 0} on record ${(deptMap['Trucking'] || 0) < 3 ? '⚠️ — typically need 3–5 drivers for multi-yard ops' : '✅'}
+• Ranch/Feedlot Ops: ${deptMap['Ranch Ops'] || 0} cowboys + ${deptMap['Feedlot'] || 0} feedlot staff ${((deptMap['Ranch Ops'] || 0) + (deptMap['Feedlot'] || 0)) < 2 ? '⚠️ — consider adding coverage' : '✅'}
+• Maintenance: ${deptMap['Maintenance'] || 0} on record ${(deptMap['Maintenance'] || 0) < 1 ? '⚠️ — at least 1 full-time maintenance/welder recommended' : '✅'}
+• Management/Office: ${(deptMap['Management'] || 0) + (deptMap['Financial'] || 0) + (deptMap['Executive'] || 0)} staff
+
+CDL DRIVERS: ${staff.filter(s => s.cdl_number).length} with CDL on file
+${staff.filter(s => s.cdl_expiry && new Date(s.cdl_expiry) < new Date(Date.now() + 90 * 86400000)).length > 0 ? '⚠️ CDLs expiring within 90 days: ' + staff.filter(s => s.cdl_expiry && new Date(s.cdl_expiry) < new Date(Date.now() + 90 * 86400000)).map(s => s.full_name).join(', ') : '✅ No CDLs expiring in next 90 days'}`;
+
+    const ranchReport = `RANCH & FEEDLOT OPERATIONS SUMMARY
+Active Lots: ${activeLots.length} | Total Head: ${totalHead.toLocaleString()}
+
+LOT BREAKDOWN:
+${activeLots.slice(0, 10).map(l => `• ${l.lot_id || l.cattle_class} | ${l.head_count} hd | ${l.current_weight || l.purchase_weight} lbs | ${l.yard || '—'} Pen ${l.pen || '—'} | Stage: ${l.stage} | Status: ${l.status}`).join('\n') || '• No active lots on record'}
+
+HEALTH SUMMARY (Last ${healthEvents.length} Events):
+• Pulls: ${recentPulls.length} events (${recentPulls.reduce((s, e) => s + (e.head_affected || 0), 0)} head affected)
+• Deaths: ${recentDeaths.length} events (${recentDeaths.reduce((s, e) => s + (e.head_affected || 0), 0)} head)
+• Morbidity Rate: ${morbidityRate}% ${Number(morbidityRate) > 10 ? '⚠️ ELEVATED' : '✅ Normal'}
+• Follow-ups pending: ${healthEvents.filter(e => e.follow_up_required && !e.notes?.includes('done')).length}
+
+FEED OPERATIONS:
+• Pending feed orders: ${feedOrders.filter(f => f.status === 'scheduled').length}
+• Completed today: ${feedOrders.filter(f => f.status === 'complete' && f.feed_date === new Date().toISOString().split('T')[0]).length}`;
+
+    const maintenanceReport = `MAINTENANCE & FACILITIES SUMMARY
+Open Tickets: ${openTickets.length} | Urgent: ${urgentTickets.length} | High: ${highTickets.length}
+
+${urgentTickets.length > 0 ? 'URGENT — DO NOW:\n' + urgentTickets.map(t => `🔴 ${t.title} | ${t.entity || ''} | ${t.location || ''} | Reported by: ${t.reported_by || '?'}`).join('\n') : ''}
+
+${highTickets.length > 0 ? 'HIGH PRIORITY — THIS WEEK:\n' + highTickets.map(t => `🟠 ${t.title} | ${t.entity || ''} | ${t.category || ''}`).join('\n') : ''}
+
+BY CATEGORY:
+${['fence_repair','equipment','welding','plumbing','electrical','vehicle','building','other'].map(cat => {
+  const count = openTickets.filter(t => t.category === cat).length;
+  return count > 0 ? `• ${cat.replace('_',' ')}: ${count} open` : null;
+}).filter(Boolean).join('\n') || '• No open maintenance tickets ✅'}
+
+EST. LABOR HOURS OUTSTANDING: ${openTickets.reduce((s, t) => s + (t.estimated_hours || 4), 0)} hrs`;
+
+    const marketReport = `MARKET STRATEGY & FINANCIAL OUTLOOK
+Data: ${mkt?.date || 'Latest available'}
+
+CURRENT MARKET:
+• Live Cattle Futures: $${lc}/cwt ${lc > 240 ? '✅ STRONG' : lc > 225 ? '▲ MODERATE' : '⚠️ WEAK'}
+• Choice Cutout: $${choice}/cwt
+• Cutout Spread: $${spread.toFixed(2)}/cwt ${spread > 80 ? '✅ Wide — favor selling' : '⚠️ Narrow — monitor'}
+• Corn: $${corn}/bu ${corn < 4.50 ? '✅ Favorable COG' : '⚠️ Elevated — watch margins'}
+• SBM: $${mkt?.sbm_price || '—'}/ton
+• 90s Trim: $${mkt?.trim_90s || '—'}/lb ${mkt?.trim_90s > 3.00 ? '✅ Strong cow/bull signal' : ''}
+• Basis (Southern Plains): $${mkt?.basis_southern_plains || '—'}/cwt
+
+PORTFOLIO EXPOSURE:
+${activeLots.slice(0, 5).map(l => {
+  const w = l.current_weight || l.purchase_weight || 0;
+  const val = w * (l.purchase_price || 150) / 100 * l.head_count;
+  const estRevenue = l.target_weight ? l.target_weight * (lc / 100) * l.head_count : 0;
+  return `• ${l.lot_id || l.cattle_class}: ${l.head_count} hd | Est. value $${(val/1000).toFixed(0)}K${estRevenue ? ' | Est. sell $' + (estRevenue/1000).toFixed(0) + 'K' : ''}`;
+}).join('\n') || '• No active lots'}
+
+SIGNAL: ${lc > 240 ? 'SELL — premium window open. Prioritize finishing cattle for market.' : lc > 230 ? 'HOLD/WATCH — decent market but not peak. Monitor weekly.' : 'CAUTION — consider hedging strategy. Break-even analysis recommended before committing buys.'}`;
+
+    const actionPlan = `90-DAY DATA-DRIVEN ACTION PLAN
+
+WEEK 1–2 (IMMEDIATE):
+${urgentTickets.length > 0 ? `□ Resolve ${urgentTickets.length} urgent maintenance ticket(s)\n` : ''}${Number(morbidityRate) > 10 ? `□ Emergency health protocol review — morbidity at ${morbidityRate}%\n` : ''}□ Verify all active lot feed orders are scheduled
+□ Confirm CDL renewals for any drivers expiring within 90 days
+${lc > 240 ? '□ Market ready cattle NOW — LC futures favorable' : '□ Run break-even analysis on each lot approaching target weight'}
+
+MONTH 1 (DAYS 1–30):
+□ Update all lot current weights and stage status
+□ Close or update all completed maintenance tickets
+□ Enter missing staff records in directory (${staff.length < 5 ? 'directory appears incomplete' : 'verify completeness'})
+□ Log daily feed orders to build historical data
+
+MONTH 2 (DAYS 31–60):
+□ Review COG vs. actual for closed lots
+□ Schedule preventive maintenance on equipment
+□ Review entity financials for each operating entity
+□ Analyze morbidity patterns and adjust health protocols
+
+MONTH 3 (DAYS 61–90):
+□ Full operational review: lots opened/closed, staff changes, entity P&L
+□ Update market inputs regularly for accurate projections
+□ Review and update buying guides based on actual performance
+□ Plan next buying cycle based on market outlook
+
+ONGOING KPIs TO TRACK:
+• Morbidity rate: target <5% | current ${morbidityRate}%
+• Mortality rate: target <1%
+• COG actual vs. budget per lot
+• Feed order completion rate
+• Maintenance ticket resolution time`;
+
+    const structureReport = `CORPORATE STRUCTURE SUMMARY
+Entities on Record: ${entities.length}
+${entities.map(e => `• ${e.entity_name} | ${e.entity_type} | ${e.tier} | ${e.status}${e.responsible_manager ? ' | Mgr: ' + e.responsible_manager : ''}`).join('\n') || '• No entity data configured — add entities in Corporate Structure page'}
+
+QUICK CHECKS:
+• Entities without EIN: ${entities.filter(e => !e.ein).length}
+• Inactive entities: ${entities.filter(e => e.status === 'inactive').length}
+• Entities missing manager: ${entities.filter(e => !e.responsible_manager).length}`;
+
+    return {
+      executive_summary: `Data-driven operations report for Continental Cattle Co. ${activeLots.length} active lots | ${totalHead.toLocaleString()} head | ${activeStaff.length} active staff | ${openTickets.length} open maintenance tickets. Market: LC $${lc}/cwt, Cutout $${choice}/cwt, Corn $${corn}/bu. Operational health score: ${healthScore}/100. ${criticalRisks.length > 0 ? 'Critical items: ' + criticalRisks.join('; ') + '.' : 'No critical risks detected.'}`,
+      immediate_actions: immediate || '✅ No critical immediate items detected from current data.',
+      staffing: staffingReport,
+      trucking: `TRUCKING & LOGISTICS\nDrivers with CDL on file: ${staff.filter(s => s.cdl_number).length}\nTrucking department staff: ${deptMap['Trucking'] || 0}\nTruck numbers logged: ${staff.filter(s => s.truck_number).length}\n\nReview Load Board for active dispatch needs. Ensure all CDL holders have current licenses. For detailed load optimization, log loads via the Load Board page.`,
+      ranch_feedlot: ranchReport,
+      maintenance: maintenanceReport,
+      corporate_structure: structureReport,
+      market_strategy: marketReport,
+      ai_monitoring: `KEY METRICS TO MONITOR DAILY:\n• LC Futures (target >$235)\n• Morbidity rate per lot (alert >10%)\n• Pending feed orders (should never be 0 with active lots)\n• Open urgent maintenance tickets (target: 0)\n\nWEEKLY:\n• Weight checks on finishing lots\n• COG vs. budget review\n• Entity P&L reconciliation\n\nMONTHLY:\n• Full lot performance review\n• Staff directory audit\n• Corporate structure financial update\n\nNote: All AI-powered monitoring alerts require integration credits. Current data-driven checks run on page load.`,
+      action_plan_90day: actionPlan,
+      critical_risk_count: criticalRisks.length,
+      opportunity_count: (lc > 240 ? 1 : 0) + (spread > 80 ? 1 : 0) + (mkt?.trim_90s > 3.00 ? 1 : 0),
+      overall_health_score: healthScore,
+      _fallback: true,
+    };
+  };
+
   const generate = async () => {
     setLoading(true);
     setAdvice(null);
-    const result = await base44.integrations.Core.InvokeLLM({
-      prompt: buildPrompt(),
-      model: 'claude_sonnet_4_6',
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          executive_summary: { type: 'string' },
-          immediate_actions: { type: 'string' },
-          staffing: { type: 'string' },
-          trucking: { type: 'string' },
-          ranch_feedlot: { type: 'string' },
-          maintenance: { type: 'string' },
-          corporate_structure: { type: 'string' },
-          market_strategy: { type: 'string' },
-          ai_monitoring: { type: 'string' },
-          action_plan_90day: { type: 'string' },
-          critical_risk_count: { type: 'number' },
-          opportunity_count: { type: 'number' },
-          overall_health_score: { type: 'number', description: '0-100 operational health score' },
+    try {
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: buildPrompt(),
+        model: 'claude_sonnet_4_6',
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            executive_summary: { type: 'string' },
+            immediate_actions: { type: 'string' },
+            staffing: { type: 'string' },
+            trucking: { type: 'string' },
+            ranch_feedlot: { type: 'string' },
+            maintenance: { type: 'string' },
+            corporate_structure: { type: 'string' },
+            market_strategy: { type: 'string' },
+            ai_monitoring: { type: 'string' },
+            action_plan_90day: { type: 'string' },
+            critical_risk_count: { type: 'number' },
+            opportunity_count: { type: 'number' },
+            overall_health_score: { type: 'number', description: '0-100 operational health score' },
+          }
         }
-      }
-    });
-    setAdvice(result);
+      });
+      setAdvice(result);
+      toast.success('AI Operations Report generated');
+    } catch (err) {
+      const fallback = generateFallbackReport();
+      setAdvice(fallback);
+      toast.info('AI unavailable — showing data-driven report from your records');
+    }
     setLoading(false);
-    toast.success('AI Operations Report generated');
   };
 
   return (
@@ -255,7 +432,11 @@ Prioritized roadmap with specific actions, responsible parties, and expected out
           {advice.ai_monitoring && <AdvisorSection title="🤖 AI MONITORING RECOMMENDATIONS" color="text-primary" content={advice.ai_monitoring} />}
           {advice.action_plan_90day && <AdvisorSection title="🗺️ 90-DAY ACTION PLAN" color="text-success" content={advice.action_plan_90day} />}
 
-          <p className="text-xs text-muted-foreground text-center pt-2">AI-generated recommendations. Validate with your management team before implementing.</p>
+          <p className="text-xs text-muted-foreground text-center pt-2">
+            {advice._fallback
+              ? '⚡ Data-driven report generated from your actual records (AI unavailable). Validate with your management team before implementing.'
+              : 'AI-generated recommendations. Validate with your management team before implementing.'}
+          </p>
         </div>
       )}
     </div>
