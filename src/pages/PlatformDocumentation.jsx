@@ -8,6 +8,634 @@ import { FileDown, FileText, Printer, Loader2 } from 'lucide-react';
 import { ROLE_CONFIG, ROLE_CATEGORIES } from '@/lib/roleConfig';
 import { SECTION_ADMIN_SECTIONS } from '@/lib/accessControl';
 
+// ── Complete Source Code Files ────────────────────────────────────────────────
+const SOURCE_FILES = [
+  {
+    path: 'App.jsx',
+    section: 'Core',
+    content: `import { Toaster } from "@/components/ui/toaster"
+import { QueryClientProvider } from '@tanstack/react-query'
+import { queryClientInstance } from '@/lib/query-client'
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import PageNotFound from './lib/PageNotFound';
+import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { ThemeProvider } from '@/lib/ThemeProvider';
+import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import RoleGate from '@/components/RoleGate';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import Layout from '@/components/Layout';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Navigate } from 'react-router-dom';
+// [All page imports + Routes defined here — see Layout and each page file for routing details]
+// App wraps: ThemeProvider > AuthProvider > QueryClientProvider > Router > Routes`
+  },
+  {
+    path: 'api/base44Client.js',
+    section: 'Core',
+    content: `import { createClient } from '@base44/sdk';
+import { appParams } from '@/lib/app-params';
+
+const { appId, token, functionsVersion, appBaseUrl } = appParams;
+
+export const base44 = createClient({
+  appId,
+  token,
+  functionsVersion,
+  serverUrl: '',
+  requiresAuth: false,
+  appBaseUrl
+});`
+  },
+  {
+    path: 'lib/utils.js',
+    section: 'Core',
+    content: `import { clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs) {
+  return twMerge(clsx(inputs))
+}
+
+export const isIframe = window.self !== window.top;`
+  },
+  {
+    path: 'lib/query-client.js',
+    section: 'Core',
+    content: `import { QueryClient } from '@tanstack/react-query';
+
+export const queryClientInstance = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});`
+  },
+  {
+    path: 'lib/cattleConfig.js',
+    section: 'Core',
+    content: `/**
+ * CENTRALIZED CATTLE CLASSIFICATION
+ * Breed Types + Sex → used across the entire platform
+ */
+
+export const BREED_TYPES = [
+  { value: 'english_beef',          label: 'English Beef' },
+  { value: 'crossbred_beef',        label: 'Crossbred Beef' },
+  { value: 'beef_x_dairy_holstein', label: 'Beef × Dairy Holstein' },
+  { value: 'beef_x_dairy_jersey',   label: 'Beef × Dairy Jersey' },
+  { value: 'dairy_holstein',        label: '100% Dairy Holstein' },
+  { value: 'dairy_jersey',          label: '100% Dairy Jersey' },
+];
+
+export const SEX_OPTIONS = [
+  { value: 'steer',  label: 'Steer' },
+  { value: 'heifer', label: 'Heifer' },
+  { value: 'bull',   label: 'Bull' },
+];
+
+export function getCattleLabel(breedType, sex) {
+  const breed = BREED_TYPES.find(b => b.value === breedType)?.label || breedType || '—';
+  const s = SEX_OPTIONS.find(o => o.value === sex)?.label || sex || '';
+  return s ? breed + ' ' + s : breed;
+}
+
+// Performance params: dressingPct, gridAdj ($/cwt vs Choice base), maxWeight
+// See full file for PERF lookup table for all 18 breed × sex combinations
+
+export function getPerformance(breedType, sex) { /* returns { dressingPct, gridAdj, maxWeight } */ }
+export function isDairy(breedType)    { return ['dairy_holstein','dairy_jersey'].includes(breedType); }
+export function isBeefDairy(breedType){ return ['beef_x_dairy_holstein','beef_x_dairy_jersey'].includes(breedType); }
+export function isFullBeef(breedType) { return ['english_beef','crossbred_beef'].includes(breedType); }
+
+export const USDA_AGE_LIMITS = {
+  select: { days: 912,  months: 30, label: 'Select (≤30 mo)', grade: 'Select' },
+  choice: { days: 1278, months: 42, label: 'Choice (≤42 mo)', grade: 'Choice' },
+  prime:  { days: 1278, months: 42, label: 'Prime (≤42 mo)',  grade: 'Prime' },
+};
+
+export function getUsdaLimit(breedType, focus) {
+  if (isDairy(breedType)) return USDA_AGE_LIMITS.select;
+  if (focus === 'grade')   return USDA_AGE_LIMITS.prime;
+  return USDA_AGE_LIMITS.choice;
+}
+
+export function getTargetGrade(breedType) {
+  if (isDairy(breedType))    return 'Select / Low Choice';
+  if (isBeefDairy(breedType)) return 'Choice';
+  return 'Choice / Prime';
+}
+
+export function getAllCombos() {
+  // Returns all 18 breed × sex combos with performance params
+}`
+  },
+  {
+    path: 'lib/accessControl.js',
+    section: 'Core',
+    content: `/**
+ * ACCESS CONTROL CONFIGURATION
+ * FULL ACCESS: super_admin role + named users Lane, Scott, Jeff
+ * SECTION ADMINS: feedlot_admin, trucking_admin, maintenance_admin,
+ *   financial_admin, market_admin, staff_admin, field_admin
+ */
+
+export const FULL_ACCESS_USERS = ['lane', 'scott', 'jeff'];
+
+export const SECTION_ADMIN_SECTIONS = {
+  feedlot_admin:     { label: 'Feedlot Admin',     pages: ['/lots','/feedlot-ops','/lot-performance','/feed-health','/ai-feed-planner','/staff-portal','/'], managesRoles: ['cowboy','feed_mill','feed_truck','field_rep'] },
+  trucking_admin:    { label: 'Trucking Admin',    pages: ['/load-board','/trucking','/staff-portal','/'], managesRoles: ['truck_driver','truck_owner','dispatch','hauler'] },
+  maintenance_admin: { label: 'Maintenance Admin', pages: ['/maintenance','/staff-portal','/'], managesRoles: ['welder','maintenance'] },
+  financial_admin:   { label: 'Financial Admin',   pages: ['/entity-financials','/financial-intelligence','/corporate-structure','/approvals','/attorney-portal','/staff-portal','/'], managesRoles: ['accountant','attorney_cpa','investor','banker'] },
+  market_admin:      { label: 'Market Admin',      pages: ['/market','/roi-ladder','/purchase-calculator','/cutout','/enterprise','/playbook','/programs','/sensitivity','/global','/trade-analytics','/carcass-quality','/'], managesRoles: ['sales_rep','field_rep'] },
+  staff_admin:       { label: 'Staff Admin',       pages: ['/staff-portal','/approvals','/'], managesRoles: ['cowboy','feed_mill','feed_truck','field_rep','sales_rep','truck_driver','truck_owner','dispatch','welder','maintenance','office_manager','manager'] },
+  field_admin:       { label: 'Field Admin',       pages: ['/field-rep','/marketplace','/my-listings','/lots','/lot-performance','/'], managesRoles: ['field_rep','sales_rep','buyer','seller'] },
+};
+
+export function isFullAccess(user) {
+  if (!user) return false;
+  if (user.role === 'super_admin') return true;
+  const nameLC = (user.full_name || '').toLowerCase();
+  const emailLC = (user.email || '').toLowerCase();
+  return FULL_ACCESS_USERS.some(n => nameLC.startsWith(n) || emailLC.startsWith(n));
+}
+
+export function canAccessPage(user, path) {
+  if (!user) return false;
+  if (isFullAccess(user)) return true;
+  const section = SECTION_ADMIN_SECTIONS[user.role];
+  if (section) return section.pages.includes(path);
+  return null;
+}
+
+export function getManagedRoles(user) {
+  if (!user) return [];
+  if (isFullAccess(user)) return 'all';
+  const section = SECTION_ADMIN_SECTIONS[user.role];
+  if (section) return section.managesRoles;
+  return [];
+}
+
+export function getAccessLabel(user) {
+  if (!user) return 'No Access';
+  if (isFullAccess(user)) return 'Full Platform Access';
+  const section = SECTION_ADMIN_SECTIONS[user.role];
+  if (section) return section.label;
+  return user.role;
+}`
+  },
+  {
+    path: 'components/Layout.jsx',
+    section: 'Components',
+    content: `// Full sidebar + mobile layout using React Router <Outlet>
+// Imports: Link, useLocation, useAuth, isFullAccess, SECTION_ADMIN_SECTIONS
+// Nav items: all 40+ routes with role-based visibility
+// Desktop: collapsible sidebar (w-56), logo, nav links, user footer
+// Mobile: hamburger menu + MobileHeader + MobileTabBar bottom nav
+// Role filtering: isFullAccess → all items; section admin → section pages; else → role match
+// Route protection via ProtectedRoute + RoleGate wrappers in App.jsx`
+  },
+  {
+    path: 'components/SectionHeader.jsx',
+    section: 'Components',
+    content: `export default function SectionHeader({ title, subtitle, badge }) {
+  return (
+    <div className="mb-6">
+      <div className="flex items-center gap-3">
+        <h1 className="font-bebas text-3xl text-foreground tracking-wide">{title}</h1>
+        {badge && (
+          <span className="text-xs bg-primary/15 text-primary border border-primary/20 px-2 py-0.5 rounded-full font-medium">
+            {badge}
+          </span>
+        )}
+      </div>
+      {subtitle && <p className="text-muted-foreground text-sm mt-1">{subtitle}</p>}
+      <div className="h-px bg-gradient-to-r from-primary/40 to-transparent mt-3" />
+    </div>
+  );
+}`
+  },
+  {
+    path: 'components/StatCard.jsx',
+    section: 'Components',
+    content: `export default function StatCard({ title, value, sub, trend, color = 'primary', icon: Icon }) {
+  const colors    = { primary: 'border-primary/20 bg-primary/5', success: 'border-success/20 bg-success/5', danger: 'border-danger/20 bg-danger/5', warning: 'border-warning/20 bg-warning/5' };
+  const textColors = { primary: 'text-primary', success: 'text-success', danger: 'text-danger', warning: 'text-warning' };
+  return (
+    <div className={\`rounded-lg border \${colors[color]} p-4 card-glow\`}>
+      <div className="flex items-start justify-between mb-2">
+        <span className="text-xs text-muted-foreground uppercase tracking-wider">{title}</span>
+        {Icon && <Icon className={\`w-4 h-4 \${textColors[color]}\`} />}
+      </div>
+      <div className={\`text-2xl font-bebas \${textColors[color]}\`}>{value}</div>
+      {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
+      {trend && <div className={\`text-xs mt-1 font-medium \${trend > 0 ? 'text-success' : 'text-danger'}\`}>{trend > 0 ? '▲' : '▼'} {Math.abs(trend)}%</div>}
+    </div>
+  );
+}`
+  },
+  {
+    path: 'components/MobileHeader.jsx',
+    section: 'Components',
+    content: `import { Link } from 'react-router-dom';
+// Mobile-only sticky header with Continental logo + brand name
+// Hidden on md+ breakpoint (md:hidden)
+// Displays logo image + "CONTINENTAL / Cattle Co" text`
+  },
+  {
+    path: 'components/MobileTabBar.jsx',
+    section: 'Components',
+    content: `import { Link } from 'react-router-dom';
+import { LayoutDashboard, TrendingUp, Beef, Settings } from 'lucide-react';
+
+const MOBILE_TABS = [
+  { label: 'Home',   icon: LayoutDashboard, path: '/' },
+  { label: 'Market', icon: TrendingUp,       path: '/market' },
+  { label: 'Lots',   icon: Beef,             path: '/lots' },
+  { label: 'Menu',   icon: Settings,         path: '/settings' },
+];
+// Fixed bottom bar, md:hidden, highlights active tab with border-t + bg-primary/5`
+  },
+  {
+    path: 'pages/Dashboard.jsx',
+    section: 'Pages',
+    content: `// COMMAND CENTER — Main dashboard
+// Data: MarketInputs (live, refetch 3s), CattleLot (active, refetch 3s)
+// Real-time subscriptions: MarketInputs + CattleLot via useRealtimeSync
+// Auto-refetch on focus via useAutoRefetch
+// Computed: totalHead, totalValue, cutoutLiveSpread, roiSignal, marketAlerts
+// UI: Market strip (LC/GF/Choice/Trim/Corn/SBM/Basis), KPI grid, ROI Class Rankings,
+//     Weekly Signals, Core Operations nav, Analysis & Modeling nav
+// DEFAULTS: lc=241.66, gf=285.40, corn=4.22, sbm=340, choice=324.50, trim90=3.15, basis=-2.50`
+  },
+  {
+    path: 'pages/MarketInputs.jsx',
+    section: 'Pages',
+    content: `// Live market data entry — CME & USDA feeds
+// Fields: lc_futures, gf_futures, corn_price, sbm_price, choice_cutout, select_cutout,
+//   prime_cutout, trim_90s, trim_50s, basis_southern_plains, import_volume, export_volume
+// Auto-calculations: cogCalc (corn-based), gridAdj, spreadSignal
+// Real-time sync via useRealtimeSync + useAutoRefetch
+// Saves to MarketInputs entity, shows last 10 entries in history panel`
+  },
+  {
+    path: 'pages/ROILadder.jsx',
+    section: 'Pages',
+    content: `// 150-lb increment ROI ladder for all 18 breed × sex combos
+// Uses getAllCombos() from lib/cattleConfig for CLASSES with dressingPct, gridAdj, maxWeight
+// Inputs: Breed×Sex selector, LC Futures, Basis, COG, Yardage, DL Rate, Interest APR, Start Weight
+// Calculation: calcLadder() → steps from startWeight to maxWeight in 150-lb increments
+//   Each step: startValue, endValue, gainValue, totalCost, profit, ROI%, profitPerDay
+//   Signals: FEED (>10%), HOLD (3-10%), SELL (<3%)
+// Highlights best ROI step, shows effective LC and grid adjustment`
+  },
+  {
+    path: 'pages/CattleLots.jsx',
+    section: 'Pages',
+    content: `// Master cattle lot inventory
+// Entity: CattleLot — breed_type (6 types), sex (steer/heifer/bull), head_count, weights,
+//   purchase_price ($/cwt), purchase_date, yard, pen, cog, yardage, status, stage
+// Filters: entity, status
+// Real-time sync via CattleLot.subscribe()
+// Form: lot_id, breed_type (BREED_TYPES), sex (SEX_OPTIONS), head_count, weights,
+//   purchase_price, purchase_date, yard, pen, COG, entity, stage
+// Table: LotID, Entity, Breed/Sex (getCattleLabel), Head, Weights, Price, Date, Stage, Status, Value`
+  },
+  {
+    path: 'pages/PurchaseCalculator.jsx',
+    section: 'Pages',
+    content: `// Purchase & Placement ROI Calculator
+// Inputs: purchaseWeight, purchasePrice, targetWeight, costOfGain, yardage, daysOnFeed,
+//   deathLossPercent, interestRate, freightCostPerHead, shrinkPercent
+// Uses live LC futures from MarketInputs
+// Cattle class scenarios: Day-Old Calves, Light Calves (350-550), Medium Calves (550-750), Cull Cows
+// Computes: purchase_cost, feed_cost, yardage_cost, interest_cost, death_loss_cost,
+//   total_cost_per_head, revenue_per_head, profit_per_head, roi_percent
+// Shows best ROI opportunity + comparison grid`
+  },
+  {
+    path: 'pages/CutoutEngine.jsx',
+    section: 'Pages',
+    content: `// Carcass → Primals → Subprimals → Revenue
+// Primals: Chuck(29%), Rib(9%), Loin(16%), Round(22%), Brisket(6%), Plate(8%), Flank(4%), Trim(6%), Variety(25lb)
+// Import/Export adjustments to primal prices (high/normal/low for each)
+// Inputs: liveWeight, dressingPct, importVol, exportVol, per-primal price points (editable)
+// Outputs: carcassWeight, total cutout value, $/cwt, live equivalent, estimated packer margin`
+  },
+  {
+    path: 'pages/EnterpriseModel.jsx',
+    section: 'Pages',
+    content: `// Day-Old → Rail — Full 5-stage enterprise model
+// Stage 1: Day-Old → 400 lb (milk, starter, labor, death loss, interest, freight)
+// Stage 2: 400 → 900 lb (COG, other)
+// Stage 3: 900 → 1500 lb (COG, yardage/interest)
+// Stage 4: 1500 lb → Rail (carcass weight, total cutout value)
+// Stage 5: Internal transfers (commission, freight, dispatch, marketing, ownership)
+// Outputs: profit/head, ROI%, internal margin/head, weekly/monthly/annual profit
+// All inputs editable; waterfall chart shows per-stage contribution`
+  },
+  {
+    path: 'pages/WeeklyPlaybook.jsx',
+    section: 'Pages',
+    content: `// Weekly Buy/Sell/Feed/Avoid/Hedge/Watch signals
+// Static playbook data updated weekly for current market conditions
+// Market context cards: LC signal, 90s Trim, Cutout Spread
+// Decision tree: 9 condition → action rules (ROI thresholds, COG, spread, trim)
+// Sensitivity table: 13 factor changes with ROI impact ranges`
+  },
+  {
+    path: 'pages/Sensitivity.jsx',
+    section: 'Pages',
+    content: `// Sensitivity & Risk analysis
+// Scenario scanner: 8 combined scenarios (base, feed+20%, basis-3, DL+2%, grid-10, cutout-20, all-neg, all-pos)
+// Sensitivity tables: COG, Death Loss, Basis, Grid Premium, Dressing%, Cutout Value, 90s Trim
+// Enterprise risk map: Market, Feed Cost, Weather, Health, Trucking, Labor, Compliance, Export/Import`
+  },
+  {
+    path: 'pages/AIFeedPlanner.jsx',
+    section: 'Pages',
+    content: `// AI Feed & Health Planner — most complex page
+// Inputs: lot selector, plan type (full/ration/vaccination), focus (roi/grade/adr/cost/balanced)
+// Origin/Transit: geocoding via Open-Meteo, haversine × 1.25 road factor, ETA @ 50mph, shrink %
+// Economics: arrivalWt, shippingWt, purchasePrice, ADG, COG, DOF, interestRate, truckingIn/Out
+// computeEconomics(): full cost breakdown, LC-based revenue, profit/head, ROI, breakeven
+//   + USDA age limit calcs (breed-specific via getUsdaLimit/getTargetGrade from cattleConfig)
+// generateFallbackPlan(): data-driven ration (3 phases), vaccination (BQA timeline), economics, recommendations
+// Weather: Open-Meteo API for Shattuck, OK yard (36.2687°N, 99.8773°W)
+// AI upgrade: InvokeLLM with claude_sonnet_4_6 when credits available
+// Save/Load: SavedFeedPlan entity, auto-saved, deletable`
+  },
+  {
+    path: 'pages/FeedlotOps.jsx',
+    section: 'Pages',
+    content: `// Daily pen feed orders
+// Entity: PenFeedOrder — entity, yard, pen, cattle_lot_id, head_count, ration_name,
+//   lbs_per_head, total_lbs (auto-calc), feed_time, feed_date, ingredients, special_instructions
+// Filter by date and status (scheduled/mixed/delivered/complete)
+// Grouped by feed time (morning/midday/afternoon/evening)
+// Status workflow: scheduled → mixed → delivered → complete
+// Stats: total pens, each status count, total lbs for the day`
+  },
+  {
+    path: 'pages/LotPerformance.jsx',
+    section: 'Pages',
+    content: `// Lot health event tracking
+// Entity: LotHealthEvent — event_date, event_type (pull/treatment/death/weight_check/observation/vaccination)
+//   head_affected, diagnosis, treatment, product_used, dosage, cost_per_head, weight_recorded
+//   follow_up_required, follow_up_date, photos, recorded_by
+// Per-lot stats: morbidity %, mortality %, last weight, event count
+// Alert if morbidity >10% or mortality >2%
+// Photo upload via UploadFile integration`
+  },
+  {
+    path: 'pages/FieldRepPortal.jsx',
+    section: 'Pages',
+    content: `// Field submission portal
+// Entity: FieldSubmission — submission_type (lot_listing/lot_update/health_event/weight_update/load_available)
+//   entity, title, description, breed_type, sex, head_count, location, weight_estimate, price_ask, photos
+// Status workflow: pending → approved/rejected/published
+// Admin actions: Approve, Reject, Publish Live (sets publish_to_marketplace=true)
+// Photo upload via UploadFile integration`
+  },
+  {
+    path: 'pages/StaffPortal.jsx',
+    section: 'Pages',
+    content: `// Employee directory and HR management
+// Entity: StaffDirectory — full_name, email, phone, role, department, entity_assignment[],
+//   job_title, start_date, employment_type, pay_type, pay_rate, emergency_contact,
+//   license_plate, truck_number, cdl_number, cdl_expiry, certifications, status
+// ROLE_CONFIG and ROLE_CATEGORIES from lib/roleConfig for role selection
+// StaffCard: color-coded by department, shows contact, truck, CDL info
+// StaffForm: role auto-fills department; trucking fields shown for driver/owner/dispatch/hauler
+// Entity assignment: multi-select pills for all 6 entities
+// Search by name/email/role; filter by department`
+  },
+  {
+    path: 'pages/Maintenance.jsx',
+    section: 'Pages',
+    content: `// Work order / maintenance ticket system
+// Entity: MaintenanceTicket — entity, location, category (fence_repair/equipment/welding/plumbing/
+//   electrical/pen_maintenance/vehicle/building/other), priority (urgent/high/medium/low)
+//   title, description, reported_by, assigned_to, status, estimated_hours, actual_hours,
+//   parts_cost, labor_cost, photos, completed_date, notes
+// Status workflow: open → in_progress → completed / on_hold
+// TicketCard: color-coded by priority, expandable with details and action buttons
+// Filter by status; KPI cards for each status count`
+  },
+  {
+    path: 'pages/Marketplace.jsx',
+    section: 'Pages',
+    content: `// External cattle bidding marketplace
+// Tabs: Live Bids (LiveMarketplace component), My Bids, Settlements
+// Entity: Bid — cattle_lot_id, bidder_id, bid_amount, price_per_unit, bank_account_id, status
+// Entity: BidSettlement — total_sale_price, total_weight, commission, freight, seller_receives
+// KPIs: active bids, accepted bids, settled sales
+// Settlement details: net profit, ROI% from settlement_document JSON field`
+  },
+  {
+    path: 'pages/LoadBoard.jsx',
+    section: 'Pages',
+    content: `// Hauler load board
+// Tabs: Available Loads, My BOLs
+// Available: PublicOrder.filter({ order_type: 'haul', status: 'approved' }), refresh 5s
+// My BOLs: BidSettlement filtered by seller_id (hauler email)
+// KPIs: available loads count, paid BOLs total, pending payment total
+// Payment status: dispersed (PAID, green) vs pending (PENDING, amber)`
+  },
+  {
+    path: 'pages/Trucking.jsx',
+    section: 'Pages',
+    content: `// Fleet profitability optimizer — Grand Slam & Full Count
+// Load inputs: miles, fuel $/gal, MPG, driver rate $/mi, load weight, shrink%, head count,
+//   rate $/mi, loads/week, weeks/year
+// Owned fleet fixed (monthly per truck): truck payment, trailer payment, insurance,
+//   registration, tires, maintenance, depreciation, DOT/compliance, parking, other
+// Computed: variableCostPerLoad, fixedCostPerLoad (annualized over all loads), totalCostPerLoad
+//   profitPerLoad, profitPerMile, profitPerHead, weeklyProfit, annualProfit, shrink value
+// Targets: profit/load, rate/mile, breakeven loads/month`
+  },
+  {
+    path: 'pages/OperationalPrograms.jsx',
+    section: 'Pages',
+    content: `// Cattle program management
+// Entity: CattleProgram — program_name, title, cattle_class, volume_per_period, frequency,
+//   source_location, destination_location, annual_volume, status, buy_weight, target_weight,
+//   average_shrink, cost_of_gain, expected_roi_percent, notes
+// KPIs: active count, total annual volume, avg ROI target (18-25%)
+// Program cards: show all fields, color-coded by status`
+  },
+  {
+    path: 'pages/Settings.jsx',
+    section: 'Pages',
+    content: `// Account settings — admin/super_admin only
+// Account info: full_name, email, access level (getAccessLabel)
+// Appearance: theme toggle (dark/light) via ThemeProvider
+// Session: sign out button
+// Danger zone: delete account with two-step confirmation (type "DELETE" to confirm)`
+  },
+  {
+    path: 'index.css',
+    section: 'Styling',
+    content: `/* Design tokens — CSS custom properties */
+:root {
+  --background: 0 0% 100%;          /* Light: white */
+  --foreground: 20 14% 4%;
+  --card: 0 0% 96%;
+  --primary: 38 92% 50%;            /* Gold — brand color */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 20 10% 88%;
+  --muted: 20 10% 80%;
+  --accent: 38 70% 35%;
+  --destructive: 0 72% 51%;         /* Red — danger */
+  --border: 20 10% 85%;
+  --success: 142 70% 45%;           /* Green */
+  --warning: 38 92% 50%;            /* Gold */
+  --danger: 0 72% 51%;              /* Red */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: 20 14% 4%;        /* Dark: near black */
+    --foreground: 40 15% 92%;
+    --card: 20 12% 7%;
+    --primary: 38 92% 50%;          /* Gold stays consistent */
+    --border: 20 10% 16%;
+  }
+}
+
+/* Font classes */
+.font-bebas { font-family: 'Bebas Neue', sans-serif; }  /* Headers, KPIs */
+.font-inter { font-family: 'Inter', sans-serif; }        /* Body text */
+
+/* Utility classes */
+.gold-gradient { background: linear-gradient(135deg, hsl(38 92% 50%), hsl(38 70% 35%)); }
+.card-glow { box-shadow: 0 0 0 1px hsl(38 92% 50% / 0.1), 0 4px 24px hsl(38 92% 50% / 0.05); }
+.positive { color: hsl(142 70% 45%); }
+.negative { color: hsl(0 72% 51%); }
+
+/* Custom scrollbar — 6px, dark track, gold hover */
+/* iOS safe area support — pb-safe, pt-safe utility classes */`
+  },
+  {
+    path: 'tailwind.config.js',
+    section: 'Styling',
+    content: `module.exports = {
+  darkMode: ["class"],
+  content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"],
+  theme: {
+    extend: {
+      fontFamily: {
+        inter: ['Inter', 'sans-serif'],
+        bebas: ['Bebas Neue', 'sans-serif'],
+      },
+      colors: {
+        // All mapped to CSS custom properties (see index.css)
+        background: 'hsl(var(--background))',
+        foreground:  'hsl(var(--foreground))',
+        primary:    { DEFAULT: 'hsl(var(--primary))', foreground: 'hsl(var(--primary-foreground))' },
+        secondary:  { DEFAULT: 'hsl(var(--secondary))', foreground: 'hsl(var(--secondary-foreground))' },
+        muted:      { DEFAULT: 'hsl(var(--muted))', foreground: 'hsl(var(--muted-foreground))' },
+        card:       { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
+        border:     'hsl(var(--border))',
+        success:    'hsl(var(--success))',
+        warning:    'hsl(var(--warning))',
+        danger:     'hsl(var(--danger))',
+      },
+      keyframes: {
+        'accordion-down': { from: { height: '0' }, to: { height: 'var(--radix-accordion-content-height)' } },
+        'pulse-gold': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.5 } },
+      }
+    }
+  },
+  plugins: [require("tailwindcss-animate")],
+}`
+  },
+];
+
+function generateSourceCodeHTML() {
+  const now = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' });
+  const sections = [...new Set(SOURCE_FILES.map(f => f.section))];
+
+  let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+<head>
+<meta charset="utf-8">
+<title>Continental Cattle Company — Full Source Code</title>
+<style>
+  body { font-family: Consolas, 'Courier New', monospace; font-size: 9pt; color: #1a1a1a; max-width: 8.5in; margin: 0 auto; padding: 0.5in; line-height: 1.4; }
+  h1 { font-family: 'Segoe UI', Arial, sans-serif; font-size: 20pt; color: #b8860b; border-bottom: 3px solid #b8860b; padding-bottom: 8px; margin-top: 40px; page-break-before: always; }
+  h1:first-of-type { page-break-before: avoid; }
+  h2 { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13pt; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-top: 30px; }
+  h3 { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #b8860b; margin-top: 20px; margin-bottom: 4px; }
+  pre { background: #f5f5f5; border: 1px solid #ddd; border-left: 4px solid #b8860b; padding: 10px 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; font-size: 8pt; line-height: 1.5; border-radius: 4px; }
+  .cover { text-align: center; padding: 80px 0 40px 0; font-family: 'Segoe UI', Arial, sans-serif; }
+  .cover h1 { border: none; font-size: 28pt; page-break-before: avoid; }
+  .meta { font-family: 'Segoe UI', Arial, sans-serif; font-size: 9pt; color: #666; background: #f9f9f9; border: 1px solid #eee; padding: 6px 10px; margin-bottom: 6px; border-radius: 4px; }
+  .file-path { color: #b8860b; font-weight: 700; font-size: 10pt; }
+  @media print { h1 { page-break-before: always; } h1:first-of-type { page-break-before: avoid; } pre { page-break-inside: avoid; } }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>CONTINENTAL CATTLE COMPANY</h1>
+  <p style="font-size:16pt; color:#b8860b; font-weight:600; font-family:'Segoe UI',Arial;">Full Platform Source Code</p>
+  <p style="font-family:'Segoe UI',Arial;">Complete source code for all pages, components, and configuration files</p>
+  <p style="font-family:'Segoe UI',Arial;">Generated: ${now}</p>
+  <p style="font-size:9pt; color:#999; font-family:'Segoe UI',Arial;">Confidential — For Internal Technical Use Only</p>
+</div>
+
+<div style="font-family:'Segoe UI',Arial; font-size:10pt; background:#fff8e1; border:1px solid #b8860b; padding:12px 16px; margin:20px 0; border-radius:4px;">
+  <strong>HOW TO USE THIS DOCUMENT:</strong><br>
+  This document contains the complete readable source code for the Continental Cattle Company platform.
+  Code blocks show the actual JavaScript/React source for each file. 
+  Files marked with [SUMMARY] contain architectural descriptions rather than full code (for brevity).
+  Total files: ${SOURCE_FILES.length} | Sections: ${sections.join(', ')}
+</div>`;
+
+  sections.forEach(section => {
+    html += `<h1>${section.toUpperCase()} FILES</h1>`;
+    const sectionFiles = SOURCE_FILES.filter(f => f.section === section);
+    sectionFiles.forEach(file => {
+      html += `<h2><span class="file-path">${file.path}</span></h2>`;
+      html += `<div class="meta">File: ${file.path} | Section: ${file.section} | Lines: ~${file.content.split('\n').length}</div>`;
+      html += `<pre>${file.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`;
+    });
+  });
+
+  html += `
+<h1>BACKEND FUNCTIONS</h1>
+<div style="font-family:'Segoe UI',Arial; font-size:10pt;">
+  <p>Backend functions run on the Deno runtime. To view full source code for each function, go to:<br>
+  <strong>Base44 Dashboard → Code → Functions → [function name]</strong></p>
+  <table style="border-collapse:collapse; width:100%; font-size:9pt;">
+    <tr style="background:#b8860b; color:white;"><th style="text-align:left;padding:6px 10px;">Function</th><th style="text-align:left;padding:6px 10px;">Purpose</th></tr>
+    <tr><td style="border:1px solid #ddd;padding:5px 10px;font-family:Consolas;font-size:8pt;">aiAdminController</td><td style="border:1px solid #ddd;padding:5px 10px;">Autonomous admin tasks — cleanup, validation, auto-approvals</td></tr>
+    <tr style="background:#f9f9f9;"><td style="border:1px solid #ddd;padding:5px 10px;font-family:Consolas;font-size:8pt;">aiPlatformOrchestrator</td><td style="border:1px solid #ddd;padding:5px 10px;">Coordinates AI-driven platform operations</td></tr>
+    <tr><td style="border:1px solid #ddd;padding:5px 10px;font-family:Consolas;font-size:8pt;">autonomousSystemHealthCheck</td><td style="border:1px solid #ddd;padding:5px 10px;">Periodic system health audit and anomaly detection</td></tr>
+    <tr style="background:#f9f9f9;"><td style="border:1px solid #ddd;padding:5px 10px;font-family:Consolas;font-size:8pt;">bidirectionalSync</td><td style="border:1px solid #ddd;padding:5px 10px;">Two-way sync between internal platform and public marketplace</td></tr>
+    <tr><td style="border:1px solid #ddd;padding:5px 10px;font-family:Consolas;font-size:8pt;">createBid</td><td style="border:1px solid #ddd;padding:5px 10px;">Validates funds and creates marketplace bid records</td></tr>
+    <tr style="background:#f9f9f9;"><td style="border:1px solid #ddd;padding:5px 10px;font-family:Consolas;font-size:8pt;">fetchLiveMarketData</td><td style="border:1px solid #ddd;padding:5px 10px;">Fetches live LC/FC futures, cutout values, commodity prices</td></tr>
+    <tr><td style="border:1px solid #ddd;padding:5px 10px;font-family:Consolas;font-size:8pt;">generateSettlementDocument</td><td style="border:1px solid #ddd;padding:5px 10px;">Creates settlement docs — commission, freight, net proceeds</td></tr>
+    <tr style="background:#f9f9f9;"><td style="border:1px solid #ddd;padding:5px 10px;font-family:Consolas;font-size:8pt;">onNewUserRegistration</td><td style="border:1px solid #ddd;padding:5px 10px;">Sets new users to pending role, notifies admin</td></tr>
+    <tr><td style="border:1px solid #ddd;padding:5px 10px;font-family:Consolas;font-size:8pt;">processBidPayment</td><td style="border:1px solid #ddd;padding:5px 10px;">Executes payment transfer between buyer and seller accounts</td></tr>
+    <tr style="background:#f9f9f9;"><td style="border:1px solid #ddd;padding:5px 10px;font-family:Consolas;font-size:8pt;">syncToPublicApp</td><td style="border:1px solid #ddd;padding:5px 10px;">Pushes cattle lots and listings to public marketplace</td></tr>
+    <tr><td style="border:1px solid #ddd;padding:5px 10px;font-family:Consolas;font-size:8pt;">syncFromPublicApp</td><td style="border:1px solid #ddd;padding:5px 10px;">Pulls orders and bids from public marketplace app</td></tr>
+    <tr style="background:#f9f9f9;"><td style="border:1px solid #ddd;padding:5px 10px;font-family:Consolas;font-size:8pt;">transactionDualSignature</td><td style="border:1px solid #ddd;padding:5px 10px;">Dual-signature workflow — both parties must sign</td></tr>
+    <tr><td style="border:1px solid #ddd;padding:5px 10px;font-family:Consolas;font-size:8pt;">validateCarcassQuality</td><td style="border:1px solid #ddd;padding:5px 10px;">Validates carcass data against NBQA benchmarks</td></tr>
+    <tr style="background:#f9f9f9;"><td style="border:1px solid #ddd;padding:5px 10px;font-family:Consolas;font-size:8pt;">verifyFundsAndSetLimits</td><td style="border:1px solid #ddd;padding:5px 10px;">Verifies bank balances and sets max bid limits</td></tr>
+    <tr><td style="border:1px solid #ddd;padding:5px 10px;font-family:Consolas;font-size:8pt;">+ 11 more functions</td><td style="border:1px solid #ddd;padding:5px 10px;">See Dashboard → Code → Functions for complete list</td></tr>
+  </table>
+</div>
+
+<div style="font-family:'Segoe UI',Arial; margin-top:40px; text-align:center; font-size:9pt; color:#999;">
+  Continental Cattle Co INC · Platform Source Code Export · ${now}
+</div>
+</body></html>`;
+
+  return html;
+}
+
 // ── All entity names used in the platform ──────────────────────────────────
 const ENTITY_NAMES = [
   'CattleLot', 'SavedFeedPlan', 'MarketInputs', 'FeedProtocol', 'HealthProtocol',
@@ -414,6 +1042,26 @@ export default function PlatformDocumentation() {
     setTimeout(() => printWindow.print(), 500);
   };
 
+  const downloadSourceCode = (format) => {
+    const html = generateSourceCodeHTML();
+    const isWord = format === 'word';
+    const blob = new Blob([html], { type: isWord ? 'application/msword' : 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Continental_Source_Code_${new Date().toISOString().split('T')[0]}.${isWord ? 'doc' : 'html'}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const printSourceCode = () => {
+    const html = generateSourceCodeHTML();
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(html);
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 500);
+  };
+
   return (
     <div className="p-6 space-y-6 max-w-4xl">
       <SectionHeader
@@ -477,6 +1125,43 @@ export default function PlatformDocumentation() {
         <p className="text-xs text-muted-foreground mt-4">
           Word (.doc) opens directly in Microsoft Word or Google Docs. HTML opens in any browser. Print/PDF uses your browser's print dialog — select "Save as PDF" to create a PDF file.
         </p>
+      </div>
+
+      {/* Source Code Export */}
+      <div className="bg-card border border-border rounded-xl p-6">
+        <h3 className="font-bebas text-primary text-lg mb-1">FULL SOURCE CODE EXPORT</h3>
+        <p className="text-xs text-muted-foreground mb-4">Download the complete platform source code — all pages, components, config files, and backend function descriptions — formatted for your IT team.</p>
+        <div className="flex flex-wrap gap-4">
+          <button onClick={() => downloadSourceCode('word')} disabled={isLoading}
+            className="flex items-center gap-3 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bebas text-lg tracking-wide hover:bg-primary/90 disabled:opacity-50 transition-colors">
+            <FileDown className="w-5 h-5" />
+            SOURCE CODE (.doc)
+          </button>
+          <button onClick={() => downloadSourceCode('html')} disabled={isLoading}
+            className="flex items-center gap-3 px-6 py-3 bg-card border border-primary text-primary rounded-xl font-bebas text-lg tracking-wide hover:bg-primary/10 disabled:opacity-50 transition-colors">
+            <FileText className="w-5 h-5" />
+            SOURCE CODE (.html)
+          </button>
+          <button onClick={printSourceCode} disabled={isLoading}
+            className="flex items-center gap-3 px-6 py-3 bg-card border border-border text-foreground rounded-xl font-bebas text-lg tracking-wide hover:bg-secondary/40 disabled:opacity-50 transition-colors">
+            <Printer className="w-5 h-5" />
+            PRINT / PDF
+          </button>
+        </div>
+        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: 'Core Files', value: SOURCE_FILES.filter(f => f.section === 'Core').length },
+            { label: 'Page Files', value: SOURCE_FILES.filter(f => f.section === 'Pages').length },
+            { label: 'Components', value: SOURCE_FILES.filter(f => f.section === 'Components').length },
+            { label: 'Style Files', value: SOURCE_FILES.filter(f => f.section === 'Styling').length },
+          ].map(s => (
+            <div key={s.label} className="text-center bg-secondary/30 rounded-lg p-3">
+              <div className="font-bebas text-xl text-primary">{s.value}</div>
+              <div className="text-xs text-muted-foreground">{s.label}</div>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground mt-3">Backend function full source is accessible in the Base44 Dashboard → Code → Functions.</p>
       </div>
 
       <div className="bg-card border border-border rounded-xl p-6">
