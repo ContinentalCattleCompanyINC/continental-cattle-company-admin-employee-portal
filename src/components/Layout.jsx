@@ -79,24 +79,24 @@ export default function Layout() {
   return (
     <div className="flex h-screen bg-background flex-col md:flex-row overflow-hidden">
       {/* Sidebar - Desktop + Mobile Modal */}
-       <aside className={`${mobileMenuOpen ? 'fixed inset-y-0 left-0 z-50 w-56' : 'hidden'} md:static md:flex ${sidebarOpen ? 'md:w-56' : 'md:w-0'} bg-card border-r border-border flex-col overflow-hidden transition-all duration-300`}>
-        {/* Logo */}
-        <div className="p-4 border-b border-border">
-          <div className="flex items-center gap-3">
-            <img
-              src="https://media.base44.com/images/public/69f4e0f8f8f460e805a3eb84/d924dd25e_IMG_6891.png"
-              alt="Continental Cattle Company"
-              className="w-12 h-12 object-contain flex-shrink-0"
-            />
-            <div className="min-w-0">
-              <div className="font-bebas text-primary text-sm leading-tight">CONTINENTAL</div>
-              <div className="text-muted-foreground text-xs">Cattle Co INC</div>
-            </div>
-          </div>
-        </div>
+      <aside className={`${mobileMenuOpen ? 'fixed inset-y-0 left-0 z-50 w-56' : 'hidden'} md:static md:flex ${sidebarOpen ? 'md:w-56' : 'md:w-0'} bg-card border-r border-border flex-col overflow-hidden transition-all duration-300`}>
+       {/* Logo */}
+       <div className="p-4 border-b border-border flex-shrink-0">
+         <div className="flex items-center gap-3">
+           <img
+             src="https://media.base44.com/images/public/69f4e0f8f8f460e805a3eb84/d924dd25e_IMG_6891.png"
+             alt="Continental Cattle Company"
+             className="w-12 h-12 object-contain flex-shrink-0"
+           />
+           <div className="min-w-0">
+             <div className="font-bebas text-primary text-sm leading-tight">CONTINENTAL</div>
+             <div className="text-muted-foreground text-xs">Cattle Co INC</div>
+           </div>
+         </div>
+       </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto min-h-0 p-2 space-y-1">
+       {/* Navigation - Scrollable on mobile */}
+       <nav className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 p-2 space-y-1 md:overflow-y-auto">
           {navItems.map((item) => {
             const active = location.pathname === item.path;
             return (
@@ -116,8 +116,8 @@ export default function Layout() {
           })}
         </nav>
 
-        {/* Footer */}
-        <div className="p-3 border-t border-border text-xs text-muted-foreground space-y-1">
+        {/* Footer - Fixed at bottom */}
+        <div className="p-3 border-t border-border text-xs text-muted-foreground space-y-1 flex-shrink-0">
           <div className="truncate font-medium text-foreground">{user?.full_name || user?.email}</div>
           <div className="truncate text-xs leading-tight">
             {getAccessLabel(user)}
